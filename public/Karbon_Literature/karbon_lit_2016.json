@@ -1,0 +1,103 @@
+{
+  "year": 2016,
+  "totalCarbon": 112924.3001,
+  "totalAreaHa": 83554.38,
+  "byNama": {
+    "Gunung Halimun Salak": {
+      "namobj": "Gunung Halimun Salak",
+      "kelas": "Hutan Konservasi",
+      "carbon": 46864.1702,
+      "areaHa": 31888.62
+    },
+    "Kelompok Hutan Ciladaeun": {
+      "namobj": "Kelompok Hutan Ciladaeun",
+      "kelas": "Hutan Produksi",
+      "carbon": 5663.105,
+      "areaHa": 3677.85
+    },
+    "Kelompok Hutan Cimapag": {
+      "namobj": "Kelompok Hutan Cimapag",
+      "kelas": "Hutan Produksi",
+      "carbon": 2642.5804,
+      "areaHa": 1832.4
+    },
+    "Kelompok Hutan Gunung Cihara Ciherang": {
+      "namobj": "Kelompok Hutan Gunung Cihara Ciherang",
+      "kelas": "Hutan Produksi",
+      "carbon": 3941.4727,
+      "areaHa": 3395.43
+    },
+    "Kelompok Hutan Gunung Kendeng": {
+      "namobj": "Kelompok Hutan Gunung Kendeng",
+      "kelas": "Hutan Produksi",
+      "carbon": 18689.4165,
+      "areaHa": 13949.91
+    },
+    "Kelompok Hutan Gunung Kukulu": {
+      "namobj": "Kelompok Hutan Gunung Kukulu",
+      "kelas": "Hutan Produksi",
+      "carbon": 620.3654,
+      "areaHa": 407.7
+    },
+    "Kelompok Hutan Pasir Manglid": {
+      "namobj": "Kelompok Hutan Pasir Manglid",
+      "kelas": "Hutan Produksi",
+      "carbon": 10075.6768,
+      "areaHa": 7376.4
+    },
+    "Kelompok Hutan Pasir Cabe": {
+      "namobj": "Kelompok Hutan Pasir Cabe",
+      "kelas": "Hutan Produksi",
+      "carbon": 6983.7214,
+      "areaHa": 4962.15
+    },
+    "Kelompok Hutan Sadapulang": {
+      "namobj": "Kelompok Hutan Sadapulang",
+      "kelas": "Hutan Produksi",
+      "carbon": 1927.7781,
+      "areaHa": 2195.19
+    },
+    "Kelompok Hutan Peucangpari": {
+      "namobj": "Kelompok Hutan Peucangpari",
+      "kelas": "Hutan Produksi",
+      "carbon": 747.7463,
+      "areaHa": 550.26
+    },
+    "Kelompok Hutan Sanggabuana Selatan": {
+      "namobj": "Kelompok Hutan Sanggabuana Selatan",
+      "kelas": "Hutan Produksi",
+      "carbon": 7472.0737,
+      "areaHa": 6600.78
+    },
+    "Kelompok Hutan Sanggabuana Utara": {
+      "namobj": "Kelompok Hutan Sanggabuana Utara",
+      "kelas": "Hutan Produksi",
+      "carbon": 2038.3646,
+      "areaHa": 2170.89
+    },
+    "Kelompok Hutan G. Kembang": {
+      "namobj": "Kelompok Hutan G. Kembang",
+      "kelas": "Hutan Produksi",
+      "carbon": 2248.881,
+      "areaHa": 1626.12
+    },
+    "Kelompok Hutan G. Bongkok": {
+      "namobj": "Kelompok Hutan G. Bongkok",
+      "kelas": "Hutan Produksi",
+      "carbon": 782.1346,
+      "areaHa": 677.16
+    },
+    "Kelompok Hutan Ciberang I dan II": {
+      "namobj": "Kelompok Hutan Ciberang I dan II",
+      "kelas": "Hutan Produksi",
+      "carbon": 169.2831,
+      "areaHa": 127.17
+    },
+    "Kelompok Hutan Halimun-Salak": {
+      "namobj": "Kelompok Hutan Halimun-Salak",
+      "kelas": "Hutan Produksi",
+      "carbon": -1.3378,
+      "areaHa": 2.79
+    }
+  }
+}
