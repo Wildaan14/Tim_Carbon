@@ -10,88 +10,88 @@ const LANDCOVER_CLASS_VALUES = {
     agb: 345.46,
     bgb: 100.89,
     cf: 0.47,
-    color: "#1b4332",
-  }, // Deep Emerald
+    color: "#2ca25f", // Vibrant Deep Green
+  },
   5: {
     name: "Mangrove",
     nameId: "Mangrove",
     agb: 236.17,
     bgb: 73.45,
     cf: 0.47,
-    color: "#081c15",
-  }, // Dark Lush Green
+    color: "#02818a", // Deep Teal
+  },
   13: {
     name: "Non-forest Vegetation",
     nameId: "Tumbuhan non Hutan",
     agb: 19.34,
     bgb: 4.56,
     cf: 0.47,
-    color: "#2d6a4f",
-  }, // Medium Green
+    color: "#addd8e", // Chartreuse / Light Green
+  },
   21: {
     name: "Other Agriculture",
     nameId: "Pertanian Lainnya",
     agb: 64.64,
     bgb: 12.93,
     cf: 0.47,
-    color: "#95d5b2",
-  }, // Sage Green
+    color: "#fee08b", // Sizzling Yellow
+  },
   24: {
     name: "Settlement",
     nameId: "Permukiman",
     agb: 2.17,
     bgb: 0.63,
     cf: 0.47,
-    color: "#7f8c8d",
-  }, // Warm Grey
+    color: "#e31a1c", // Vibrant Red
+  },
   25: {
     name: "Other Non-vegetation",
     nameId: "Non Vegetasi Lainnya",
     agb: 2.4,
     bgb: 0.57,
     cf: 0.47,
-    color: "#95a5a6",
-  }, // Muted Grey
+    color: "#bdbdbd", // Light Grey
+  },
   30: {
     name: "Mining",
     nameId: "Tambang",
     agb: 0.0,
     bgb: 0.0,
     cf: 0.47,
-    color: "#5d4037",
-  }, // Earthy Brown
+    color: "#8c510a", // Deep Brown
+  },
   31: {
     name: "Shrimp Pond",
     nameId: "Tambak Udang",
     agb: 0.0,
     bgb: 0.0,
     cf: 0.47,
-    color: "#2980b9",
-  }, // Ocean Blue
+    color: "#4eb3d3", // Light Cyan
+  },
   33: {
     name: "River",
     nameId: "Sungai",
     agb: 0.0,
     bgb: 0.0,
     cf: 0.47,
-    color: "#3498db",
-  }, // Soft Blue
+    color: "#2b8cbe", // Ocean Blue
+  },
   35: {
     name: "Oil Palm",
     nameId: "Sawit",
     agb: 48.1,
     bgb: 15.63,
     cf: 0.47,
-    color: "#52b788",
-  }, // Medium-Light Green
+    color: "#ff7f00", // Bright Orange
+  },
   40: {
     name: "Rice Paddy",
     nameId: "Sawah",
     agb: 10.0,
     bgb: 2.36,
     cf: 0.47,
-    color: "#d8f3dc",
-  }, // Very Pale Green
+    color: "#d9f0a3", // Pale Yellow-Green
+  },
 };
 
 // Faktor konversi karbon ke CO₂
@@ -108,7 +108,7 @@ const IPCC_FOREST_TYPES = {
     bgb: +(350 * 0.37).toFixed(2), // = 129.5
     bgbRatio: 0.37,
     elevMax: 1000,
-    color: "#2e7d32",
+    color: "#31a354",
     descId: "Dataran rendah < 1.000m dpl",
     descEn: "Lowland < 1,000m a.s.l.",
   },
@@ -119,7 +119,7 @@ const IPCC_FOREST_TYPES = {
     bgb: +(205 * 0.27).toFixed(2), // = 55.35
     bgbRatio: 0.27,
     elevMin: 1000,
-    color: "#1b5e20",
+    color: "#006d2c",
     descId: "Dataran tinggi ≥ 1.000m dpl",
     descEn: "Highland ≥ 1,000m a.s.l.",
   },
@@ -143,19 +143,19 @@ const NDVI_CARBON_CLASSES = {
   lit_high: {
     name: "High Carbon Stock",
     nameId: "Stok Karbon Tinggi",
-    color: "#0d4a27",
+    color: "#006837",
     ndviMin: 0.65,
   },
   lit_medium: {
     name: "Medium Carbon Stock",
     nameId: "Stok Karbon Sedang",
-    color: "#4caf50",
+    color: "#78c679",
     ndviMin: 0.5,
   },
   lit_low: {
     name: "Low Carbon Stock",
     nameId: "Stok Karbon Rendah",
-    color: "#c8e6c9",
+    color: "#ffffcc",
     ndviMin: 0.0,
   },
 };
