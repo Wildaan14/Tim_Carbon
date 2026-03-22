@@ -1254,13 +1254,13 @@ async function setKlhkYear(year) {
 
   try {
     // Use fromUrl (COG-compatible, no ArrayBuffer wrapping needed)
-    const url = `mapbiomass/${year}.tif`;
+    const url = `db_karbon/${year}.tif`;
     state.raster = await loadGeoTiffFromUrl(url, `${year}.tif`);
 
     // Coba load pre-computed JSON — jauh lebih cepat
     state.klhkPrecomputed = null;
     try {
-      const resp = await fetch(`mapbiomass/${year}_data.json`);
+      const resp = await fetch(`db_karbon/${year}_data.json`);
       if (resp.ok) {
         state.klhkPrecomputed = await resp.json();
         console.log(`[data] ${year}_data.json dimuat.`);
@@ -1343,7 +1343,7 @@ async function loadAndShowTrenTahunan() {
   await Promise.all(
     YEARS.map(async (year) => {
       try {
-        const resp = await fetch(`mapbiomass/${year}_data.json`);
+        const resp = await fetch(`db_karbon/${year}_data.json`);
         if (!resp.ok) return;
         const pd = await resp.json();
 
