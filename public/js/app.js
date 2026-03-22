@@ -2851,10 +2851,10 @@ function renderConservationLegend(classificationResults) {
 
   // Count forests per category
   const counts = {
-    konservasi_prioritas_tinggi: 0,
-    konservasi_dengan_pemantauan: 0,
+    konservasi_ketat: 0,
+    pemantauan_intensif: 0,
+    restorasi_pasif: 0,
     restorasi_aktif: 0,
-    waspada_transisi: 0,
   };
 
   classificationResults.forEach((c) => {
@@ -2863,28 +2863,28 @@ function renderConservationLegend(classificationResults) {
 
   const categories = [
     {
-      id: "konservasi_prioritas_tinggi",
-      name: "Konservasi Prioritas Tinggi",
+      id: "konservasi_ketat",
+      name: "Konservasi Ketat",
       color: "#0d9488",
-      count: counts.konservasi_prioritas_tinggi,
+      count: counts.konservasi_ketat,
     },
     {
-      id: "konservasi_dengan_pemantauan",
-      name: "Konservasi dengan Pemantauan",
+      id: "pemantauan_intensif",
+      name: "Pemantauan Intensif",
       color: "#52b788",
-      count: counts.konservasi_dengan_pemantauan,
+      count: counts.pemantauan_intensif,
+    },
+    {
+      id: "restorasi_pasif",
+      name: "Restorasi Pasif/Penyangga",
+      color: "#f2cc8f",
+      count: counts.restorasi_pasif,
     },
     {
       id: "restorasi_aktif",
       name: "Restorasi Aktif",
       color: "#e07a5f",
       count: counts.restorasi_aktif,
-    },
-    {
-      id: "waspada_transisi",
-      name: "Waspada/Transisi",
-      color: "#f2cc8f",
-      count: counts.waspada_transisi,
     },
   ];
 
@@ -2904,33 +2904,34 @@ function renderConservationLegend(classificationResults) {
  * Update conservation stats panel
  */
 function updateConservationStats(classificationResults) {
-  const totalForests = classificationResults.length;
-
   // Calculate totals per category
   const byCategory = {
-    konservasi_prioritas_tinggi: { count: 0, area: 0, carbon: 0 },
-    konservasi_dengan_pemantauan: { count: 0, area: 0, carbon: 0 },
+    konservasi_ketat: { count: 0, area: 0, carbon: 0 },
+    pemantauan_intensif: { count: 0, area: 0, carbon: 0 },
+    restorasi_pasif: { count: 0, area: 0, carbon: 0 },
     restorasi_aktif: { count: 0, area: 0, carbon: 0 },
-    waspada_transisi: { count: 0, area: 0, carbon: 0 },
   };
+
+  let totalArea = 0;
 
   classificationResults.forEach((c) => {
     const cat = c.category.id;
     byCategory[cat].count++;
     byCategory[cat].area += c.totalArea || 0;
     byCategory[cat].carbon += c.currentStock || 0;
+    totalArea += c.totalArea || 0;
   });
 
-  // Update the stats panel
-  tx("ks-total-area", fmtDec(state.totalArea) + " ha");
-  tx(
-    "ks-carbon-protect",
-    fmt(
-      byCategory.konservasi_prioritas_tinggi.carbon +
-      byCategory.konservasi_dengan_pemantauan.carbon,
-    ) + " tC",
-  );
-  tx("ks-species", "~" + Math.round(state.totalArea * 0.012) + " spp");
+  // Perbarui UI Panel Konservasi
+  tx("ks-total-area", fmtDec(totalArea) + " ha");
+  
+  // Total cadangan karbon yang memerlukan perlindungan (Ketat + Pemantauan)
+  const protectCarbon = byCategory.konservasi_ketat.carbon + byCategory.pemantauan_intensif.carbon;
+  tx("ks-carbon-protect", fmt(protectCarbon) + " tC");
+  
+  // Tambahkan ringkasan singkat tapi padat di UI
+  // Note: if user changes HTML structure, ensure these IDs exist or inject safely
+  const stAreaEl = $("qs-area"); // using existing variable names as fallback check
 }
 
 /**
@@ -2946,29 +2947,29 @@ function showClassificationPopup(layer, e) {
       <div style="font-size:14px;font-weight:700;color:${c.category.color};margin-bottom:8px">
         ${c.category.name}
       </div>
-      <div style="font-size:12px;margin-bottom:6px">🌳 ${c.nama}</div>
-      <div style="font-size:11px;color:#666;margin-bottom:10px">${c.category.description}</div>
+      <div style="font-size:12px;margin-bottom:6px">🌳 <strong>${c.nama}</strong> (${c.kelas})</div>
+      <div style="font-size:11px;color:#666;margin-bottom:10px;line-height:1.3">${c.category.description}</div>
       
       <table style="font-size:11px;width:100%;border-collapse:collapse">
         <tr style="border-bottom:1px solid #eee">
-          <td style="padding:3px 0;color:#888">Tren</td>
-          <td style="text-align:right;font-weight:600">${c.trend}</td>
+          <td style="padding:3px 0;color:#888">Carbon Density (2024)</td>
+          <td style="text-align:right;font-weight:600">${c.carbonDensity.toFixed(2)} tC/ha</td>
         </tr>
         <tr style="border-bottom:1px solid #eee">
-          <td style="padding:3px 0;color:#888">Konsistensi (R²)</td>
-          <td style="text-align:right">${c.r2.toFixed(2)} (${c.consistency})</td>
+          <td style="padding:3px 0;color:#888">Tren Karbon</td>
+          <td style="text-align:right"><span style="color:${c.slope > 0 ? '#1b5e20' : '#d32f2f'}">${c.trend}</span> (${c.consistency})</td>
         </tr>
         <tr style="border-bottom:1px solid #eee">
-          <td style="padding:3px 0;color:#888">Perubahan/tahun</td>
-          <td style="text-align:right">${c.slope >= 0 ? "+" : ""}${fmt(c.slope)} tC</td>
+          <td style="padding:3px 0;color:#888">Laju (Slope)</td>
+          <td style="text-align:right">${c.slopeDensity >= 0 ? "+" : ""}${c.slopeDensity.toFixed(2)} tC/ha/thn</td>
         </tr>
         <tr style="border-bottom:1px solid #eee">
-          <td style="padding:3px 0;color:#888">Stok 2024</td>
+          <td style="padding:3px 0;color:#888">Total Stok 2024</td>
           <td style="text-align:right">${fmt(c.currentStock)} tC</td>
         </tr>
         <tr style="border-bottom:1px solid #eee">
-          <td style="padding:3px 0;color:#888">Posisi relatif</td>
-          <td style="text-align:right">${(c.relativePosition * 100).toFixed(0)}%</td>
+          <td style="padding:3px 0;color:#888">Luas Kawasan</td>
+          <td style="text-align:right">${fmtDec(c.areaHa)} ha</td>
         </tr>
       </table>
     </div>

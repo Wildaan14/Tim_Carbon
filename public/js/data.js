@@ -263,36 +263,36 @@ function fmtDec(n, d = 2) {
  * Based on slope (β₁), R², and relative stock position
  */
 const CLASSIFICATION_CATEGORIES = {
-  KONSERVASI_PRIORITAS_TINGGI: {
-    id: "konservasi_prioritas_tinggi",
-    name: "Konservasi Prioritas Tinggi",
-    nameEn: "High Priority Conservation",
-    description: "Stok karbon naik konsisten & berada di atas rata-rata",
+  KONSERVASI_KETAT: {
+    id: "konservasi_ketat",
+    name: "Konservasi Ketat",
+    nameEn: "Strict Conservation",
+    description: "> 100 tC/ha (Tren Positif)",
     color: "#0d9488", // Teal
     priority: 1,
   },
-  KONSERVASI_DENGAN_PEMANTAUAN: {
-    id: "konservasi_dengan_pemantauan",
-    name: "Konservasi dengan Pemantauan",
-    nameEn: "Conservation with Monitoring",
-    description: "Stok karbon tinggi tetapi mulai stagnan/tertekan",
+  PEMANTAUAN_INTENSIF: {
+    id: "pemantauan_intensif",
+    name: "Konservasi & Pemantauan",
+    nameEn: "Conservation & Monitoring",
+    description: "> 100 tC/ha (Negatif) / 40-100 tC/ha (Positif)",
     color: "#52b788", // Green
     priority: 2,
   },
-  RESTORASI_AKTIF: {
-    id: "restorasi_aktif",
-    name: "Restorasi Aktif",
-    nameEn: "Active Restoration",
-    description: "Stok karbon turun atau jauh di bawah rata-rata",
-    color: "#e07a5f", // Coral/Orange
+  RESTORASI_PASIF: {
+    id: "restorasi_pasif",
+    name: "Restorasi Pasif / Pencegahan",
+    nameEn: "Passive Restoration",
+    description: "40-100 tC/ha (Negatif) / < 40 tC/ha (Positif)",
+    color: "#f2cc8f", // Yellow
     priority: 3,
   },
-  WASPADA_TRANSIISI: {
-    id: "waspada_transisi",
-    name: "Waspada/Transisi",
-    nameEn: "Watch/Transition",
-    description: "Stok karbon mulai membaik tapi masih di bawah rata-rata",
-    color: "#f2cc8f", // Yellow/Sand
+  RESTORASI_AKTIF: {
+    id: "restorasi_aktif",
+    name: "Restorasi Aktif Prioritas",
+    nameEn: "Active Restoration Priority",
+    description: "< 40 tC/ha (Tren Negatif)",
+    color: "#e07a5f", // Coral/Orange
     priority: 4,
   },
 };
@@ -346,50 +346,37 @@ function linearRegression(years, values) {
  * @param {number} avgStock - Average carbon stock across all forests
  * @returns {Object} Classification result
  */
-function classifyForest(slope, r2, currentStock, avgStock) {
-  // Relative position: ratio of current stock to average
-  const relativePosition = avgStock > 0 ? currentStock / avgStock : 1;
-
-  // Composite score calculation
-  // Score = (normalized_slope * 0.5) + (R² * 0.3) + (relative_position * 0.2)
-  // Normalize slope: divide by 1000 to get manageable numbers
-  const normalizedSlope = slope / 1000; // e.g., 500 tC/year → 0.5
-  const score =
-    normalizedSlope * 0.5 +
-    r2 * 0.3 +
-    (Math.min(relativePosition, 2) / 2) * 0.2;
-
-  // Classification rules based on the task description
+function classifyForest(slope, r2, currentStock, areaHa) {
+  // Hitung Carbon Density aktual (tC/ha)
+  const carbonDensity = areaHa > 0 ? currentStock / areaHa : 0;
+  
+  // Tren signifikan dari Regresi Linear (Slope b > 0 positif, b < 0 negatif)
+  const isPositive = slope > 0;
+  
   let category;
 
-  if (slope > 0 && relativePosition >= 1) {
-    // Positive trend AND above average → Konservasi Prioritas Tinggi
-    category = CLASSIFICATION_CATEGORIES.KONSERVASI_PRIORITAS_TINGGI;
-  } else if (relativePosition >= 1 && slope <= 0) {
-    // High stock but flat/negative trend → Konservasi dengan Pemantauan
-    category = CLASSIFICATION_CATEGORIES.KONSERVASI_DENGAN_PEMANTAUAN;
-  } else if (slope < 0 || relativePosition < 0.5) {
-    // Negative trend OR very low stock → Restorasi Aktif
-    category = CLASSIFICATION_CATEGORIES.RESTORASI_AKTIF;
-  } else if (slope > 0 && relativePosition < 1) {
-    // Positive trend but still below average → Waspada/Transisi
-    category = CLASSIFICATION_CATEGORIES.WASPADA_TRANSIISI;
-  } else {
-    // Default case
-    category = CLASSIFICATION_CATEGORIES.WASPADA_TRANSIISI;
+  // Axis 1: Carbon Density Thresholds
+  if (carbonDensity > 100) { // Zona Konservasi
+    if (isPositive) category = CLASSIFICATION_CATEGORIES.KONSERVASI_KETAT;
+    else category = CLASSIFICATION_CATEGORIES.PEMANTAUAN_INTENSIF;
+  } else if (carbonDensity >= 40 && carbonDensity <= 100) { // Zona Konservasi Intensif
+    if (isPositive) category = CLASSIFICATION_CATEGORIES.PEMANTAUAN_INTENSIF;
+    else category = CLASSIFICATION_CATEGORIES.RESTORASI_PASIF;
+  } else { // Zona Restorasi (< 40)
+    if (isPositive) category = CLASSIFICATION_CATEGORIES.RESTORASI_PASIF;
+    else category = CLASSIFICATION_CATEGORIES.RESTORASI_AKTIF;
   }
 
   return {
     category,
-    slope,
+    slope: slope, // Laju perubahan total (tC/thn)
+    slopeDensity: areaHa > 0 ? slope / areaHa : 0, // Laju perubahan per Hektar (tC/ha/thn)
     r2,
     currentStock,
-    avgStock,
-    relativePosition,
-    score,
-    trend: slope > 0 ? "meningkat" : slope < 0 ? "menurun" : "stagnan",
-    consistency:
-      r2 >= 0.7 ? "konsisten" : r2 >= 0.4 ? "sedang" : "tidak konsisten",
+    areaHa,
+    carbonDensity,
+    trend: slope > 0 ? "positif" : slope < 0 ? "negatif" : "stagnan",
+    consistency: r2 >= 0.5 ? "konsisten" : r2 >= 0.2 ? "sedang" : "tidak teratur",
   };
 }
 
@@ -439,16 +426,17 @@ function calculateAllClassifications(carbonByYear) {
     const { slope, r2 } = linearRegression(years, carbonValues);
     const currentStock = carbonValues[carbonValues.length - 1] || 0;
 
-    const classification = classifyForest(slope, r2, currentStock, avgStock);
-
-    // Also get the forest name and kelas from the data
+    // Get the forest name, kelas, and area from the latest data
     const forestData = carbonByYear[latestYear]?.byNama?.[key];
+    const areaHa = forestData?.totalArea || 0;
+
+    const classification = classifyForest(slope, r2, currentStock, areaHa);
 
     results.push({
       key,
       nama: forestData?.namobj || key.split("||")[0],
       kelas: forestData?.kelas || key.split("||")[1] || "–",
-      totalArea: forestData?.totalArea || 0,
+      totalArea: areaHa,
       ...classification,
     });
   });

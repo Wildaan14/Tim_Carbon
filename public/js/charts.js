@@ -688,16 +688,29 @@ function renderForestStatsTable(forestData) {
   tbody.innerHTML = "";
   const palette = typeof FOREST_NAME_PALETTE !== "undefined" ? FOREST_NAME_PALETTE : [];
   const namaColorMap = (typeof state !== "undefined" && state._namaColorMap) || {};
+  
+  // Ambil data klasifikasi multi-tahun jika tersedia
+  const classMap = {};
+  if (typeof state !== "undefined" && state.conservationClassification) {
+    state.conservationClassification.forEach(c => { classMap[c.nama] = c; });
+  }
+
   forestData.forEach((d, i) => {
     const color = namaColorMap[d.nama] || palette[i % palette.length] || "#52b788";
+    const cons = classMap[d.nama];
+    const consBadge = cons 
+      ? `<span style="font-size:10px;padding:3px 6px;border-radius:4px;background:${cons.category.color}22;color:${cons.category.color};border:1px solid ${cons.category.color}">${cons.category.name}</span>` 
+      : `<span style="color:#aaa;font-size:10px">-</span>`;
+
     const tr = document.createElement("tr");
     tr.innerHTML = `
       <td>${i + 1}</td>
       <td><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${color};margin-right:5px;vertical-align:middle"></span>${d.nama}</td>
       <td>${d.kelas}</td>
-      <td>${(+d.totalArea.toFixed(2)).toLocaleString("id-ID")}</td>
-      <td>${d.totalCarbon >= 1 ? Math.round(d.totalCarbon).toLocaleString("id-ID") : d.totalCarbon.toFixed(2)}</td>
-      <td>${(d.totalCarbon * 3.67) >= 1 ? Math.round(d.totalCarbon * 3.67).toLocaleString("id-ID") : (d.totalCarbon * 3.67).toFixed(2)}</td>
+      <td style="text-align:right">${(+d.totalArea.toFixed(2)).toLocaleString("id-ID")}</td>
+      <td style="text-align:right">${d.totalCarbon >= 1 ? Math.round(d.totalCarbon).toLocaleString("id-ID") : d.totalCarbon.toFixed(2)}</td>
+      <td style="text-align:right">${(d.totalCarbon * 3.67) >= 1 ? Math.round(d.totalCarbon * 3.67).toLocaleString("id-ID") : (d.totalCarbon * 3.67).toFixed(2)}</td>
+      <td style="text-align:center">${consBadge}</td>
     `;
     tbody.appendChild(tr);
   });
