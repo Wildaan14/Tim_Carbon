@@ -1,6 +1,13 @@
 {
   "cleanUrls": true,
   "trailingSlash": false,
+  "redirects": [
+    {
+      "source": "/mapbiomass/(.*)",
+      "destination": "/db_karbon/$1",
+      "permanent": true
+    }
+  ],
   "headers": [
     {
       "source": "/(.*).(tif|tiff|zip)",
