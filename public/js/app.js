@@ -2825,11 +2825,18 @@ function renderConservationMap(classificationResults) {
 
     if (classification) {
       const color = classification.category.color;
+      
+      // Jika areanya sangat kecil (< 500 ha), garis tepi (stroke) warna hitam akan menutupi isi (fill)
+      // sehingga terlihat seperti titik hitam. Kita ubah warna stroke agar sesuai dengan kategori.
+      const isTiny = classification.areaHa < 500;
+      const isRestorasi = classification.category.id.includes("restorasi");
+      const strokeColor = (isTiny || isRestorasi) ? color : "#333";
+      
       layer.setStyle({
         fillColor: color,
-        fillOpacity: 0.65,
-        color: "#333",
-        weight: 1.5,
+        fillOpacity: 0.8,
+        color: strokeColor,
+        weight: isTiny ? 2.5 : 1.5,
       });
       layer._classification = classification;
     }
