@@ -1,0 +1,992 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Tim Carbon — Kalkulator Stok Karbon</title>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css"
+    />
+    <link rel="stylesheet" href="css/style.css" />
+    <style>
+      .shp-tooltip {
+        background: #1a2e22;
+        border: 1px solid #52b788;
+        color: #d8f3dc;
+        font-size: 12px;
+        padding: 4px 8px;
+        border-radius: 6px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+      }
+      .shp-tooltip::before {
+        display: none;
+      }
+      /* Map overlay legend — bottom-left, white theme, context-sensitive per layer */
+      .map-layer-legend {
+        position: absolute;
+        bottom: 10px;
+        left: 10px;
+        z-index: 900;
+        background: rgba(255, 255, 255, 0.97);
+        border: 1px solid #dde8df;
+        border-radius: 10px;
+        padding: 9px 13px;
+        min-width: 170px;
+        max-width: 230px;
+        max-height: 330px;
+        overflow-y: auto;
+        pointer-events: none;
+        box-shadow: 0 2px 14px rgba(0, 0, 0, 0.14);
+      }
+      .mll-title {
+        font-size: 10px;
+        color: #5c7a62;
+        margin-bottom: 7px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        font-weight: 700;
+      }
+      .mll-item {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        margin: 3px 0;
+      }
+      .mll-dot {
+        width: 11px;
+        height: 11px;
+        border-radius: 2px;
+        flex-shrink: 0;
+      }
+      .mll-label {
+        font-size: 11px;
+        color: #1e2d22;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 175px;
+      }
+      .mll-bar {
+        height: 10px;
+        border-radius: 4px;
+        background: linear-gradient(to right, #e8f5e9, #43a047, #1b5e20);
+        margin: 4px 0;
+      }
+      .mll-bar-labels {
+        display: flex;
+        justify-content: space-between;
+        font-size: 10px;
+        color: #5c7a62;
+      }
+
+      /* ── Literature NDVI Breakdown Bar ── */
+      .ndvi-bar-stack {
+        display: flex;
+        height: 12px;
+        border-radius: 6px;
+        overflow: hidden;
+        gap: 1px;
+        margin-bottom: 6px;
+      }
+      .ndvi-bar-seg {
+        height: 100%;
+        transition: width 0.4s ease;
+        min-width: 2px;
+      }
+      .ndvi-bar-labels {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px 10px;
+        font-size: 10px;
+      }
+      .ndvi-bar-lbl {
+        display: flex;
+        align-items: center;
+        gap: 3px;
+        color: #7aa89a;
+      }
+      .ndvi-lbl-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        flex-shrink: 0;
+      }
+
+      /* ── Literature per-class density pill ── */
+      .rtc-dens-pill {
+        display: inline-block;
+        padding: 1px 6px;
+        border-radius: 10px;
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0.3px;
+      }
+    </style>
+  </head>
+  <body data-method="ipcc">
+    <!-- ══ GLOBAL LOADER ═══════════════════════════════════════════ -->
+    <div id="global-loader" class="global-loader" style="display: none;">
+      <div class="loader-spinner"></div>
+      <div class="loader-text" id="loader-text">Memuat Peta...</div>
+    </div>
+
+    <!-- ══ NAVBAR ══════════════════════════════════════════════════ -->
+    <nav class="navbar">
+      <div class="logo">
+        <img src="assets/Logo.png" class="logo-img" alt="Logo" />
+      </div>
+      <div class="nav-divider"></div>
+
+      <!-- TAB SWITCHER -->
+      <div class="tab-switcher">
+        <button
+          class="tab-btn active"
+          data-tab="carbon"
+          onclick="switchTab('carbon')"
+        >
+          <span id="tab-lbl-carbon">Carbon</span>
+        </button>
+        <button
+          class="tab-btn"
+          data-tab="konservasi"
+          onclick="switchTab('konservasi')"
+        >
+          <span id="tab-lbl-konservasi">Konservasi</span>
+        </button>
+        <button
+          class="tab-btn"
+          data-tab="statistik"
+          onclick="switchTab('statistik')"
+        >
+          <span id="tab-lbl-statistik">Statistik</span>
+        </button>
+      </div>
+
+      <div class="nav-spacer"></div>
+      <div class="nav-divider"></div>
+      <button class="lang-btn active" id="btn-id" onclick="handleSetLang('id')">
+        ID
+      </button>
+      <button class="lang-btn" id="btn-en" onclick="handleSetLang('en')">
+        EN
+      </button>
+    </nav>
+
+    <!-- ══ MAIN ════════════════════════════════════════════════════ -->
+    <div class="main">
+      <!-- ── SIDEBAR ─────────────────────────────────────────────── -->
+      <aside class="sidebar">
+        <!-- SECTION: Metodologi (step 1) -->
+        <div class="sidebar-section">
+          <div class="section-label" id="sec-method">Metodologi</div>
+          <div class="method-chips">
+            <div class="method-chip active" onclick="selectMethod('ipcc')">
+              <div class="mc-dot" style="background: #52b788"></div>
+              <div class="mc-info">
+                <div class="mc-name">IPCC 2019</div>
+                <div class="mc-desc">Wetlands Supplement</div>
+              </div>
+            </div>
+            <div class="method-chip" onclick="selectMethod('nfi')">
+              <div class="mc-dot" style="background: #f2cc8f"></div>
+              <div class="mc-info">
+                <div class="mc-name">KLHK</div>
+                <div class="mc-desc">National Forest Inventory</div>
+              </div>
+            </div>
+            <div class="method-chip" onclick="selectMethod('lefebvre')">
+              <div class="mc-dot" style="background: #e07a5f"></div>
+              <div class="mc-info">
+                <div class="mc-name">Literature</div>
+                <div class="mc-desc">Mangrove-specific model</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- SECTION: IPCC — Tipe Vegetasi (ipcc only) -->
+        <div class="sidebar-section ipcc-section" id="sec-ipcc-types">
+          <div class="section-label">Tipe Vegetasi</div>
+          <div class="ipcc-type-card">
+            <div class="itc-body">
+              <div class="itc-name">Tropical Rain Forest</div>
+              <div class="itc-sub">Dataran rendah &lt; 1.000m dpl</div>
+              <div class="itc-vals">
+                AGB: <strong>350</strong> &nbsp;·&nbsp; BGB:
+                <strong>129.5</strong>
+                <span class="itc-unit">t d.m./ha</span>
+              </div>
+            </div>
+            <div class="itc-elev low">Low</div>
+          </div>
+          <div class="ipcc-type-card" style="margin-top: 5px">
+            <div class="itc-body">
+              <div class="itc-name">Tropical Mountain Systems</div>
+              <div class="itc-sub">Dataran tinggi ≥ 1.000m dpl</div>
+              <div class="itc-vals">
+                AGB: <strong>205</strong> &nbsp;·&nbsp; BGB:
+                <strong>55.4</strong>
+                <span class="itc-unit">t d.m./ha</span>
+              </div>
+            </div>
+            <div class="itc-elev high">High</div>
+          </div>
+          <div class="ipcc-auto-note">
+            Kelas ditentukan otomatis dari elevasi DEM (threshold: 1.000m)
+          </div>
+        </div>
+
+        <!-- SECTION: IPCC — Status Data Auto-load (ipcc only) -->
+        <div class="sidebar-section ipcc-section" id="sec-ipcc-input">
+          <div class="section-label">Data IPCC</div>
+          <div class="file-list" id="shp-file-list"></div>
+          <div class="file-list" id="dem-file-list"></div>
+        </div>
+
+        <!-- SECTION: Literature — Info Sumber Data (lefebvre only) -->
+        <div class="sidebar-section literature-section" id="sec-lit-formula">
+          <div class="section-label">Sumber Data Literature</div>
+          <div class="lit-formula-card">
+            <div class="lfc-body">
+              <div class="lfc-eq" style="font-size: 13px">
+                Stok Karbon Landsat 8
+              </div>
+              <div class="lfc-sub">
+                Pre-computed carbon stock · tC/ha per pixel
+              </div>
+              <div class="lfc-r2">Resolusi 30m · UTM 48S · 2015–2025</div>
+            </div>
+          </div>
+          <div class="ipcc-auto-note">
+            Nilai stok karbon sudah dihitung sebelumnya dari citra Landsat 8 per
+            tahun
+          </div>
+        </div>
+
+        <!-- SECTION: Literature — Pilih Tahun (lefebvre only) -->
+        <div class="sidebar-section literature-section" id="sec-lit-input">
+          <div class="section-label">Input Data Literature</div>
+
+          <!-- Stock Carbon Year Selector -->
+          <div class="klhk-years-lbl">Pilih Tahun Data Stok Karbon</div>
+          <div class="year-btn-grid" id="ndvi-year-grid">
+            <!-- Populated by JS: 2015–2025 -->
+          </div>
+          <div
+            class="klhk-status-row"
+            id="ndvi-status-row"
+            style="display: none"
+          >
+            <span class="klhk-status-icon" id="ndvi-status-icon">⟳</span>
+            <span class="klhk-status-text" id="ndvi-status-text"
+              >Memuat...</span
+            >
+          </div>
+          <div id="ndvi-raster-info" style="display: none"></div>
+          <div class="gcc-note" style="margin-top: 8px">
+            📁 Data: <code>public/Karbon_Literature/karbon_lit_YYYY.tif</code
+            ><br />
+            Landsat 8 · 30m · 2015–2025<br />
+            <span style="opacity: 0.75"
+              >Batas area dari <code>hutan.shp</code> (otomatis)</span
+            >
+          </div>
+        </div>
+
+        <!-- SECTION: KLHK MapBiomas Database (KLHK only) -->
+        <div class="sidebar-section non-ipcc-section" id="sec-klhk-db">
+          <div class="section-label">Database MapBiomas KLHK</div>
+          <div class="klhk-years-lbl">Pilih Tahun Data LULC</div>
+          <div class="year-btn-grid" id="klhk-year-grid">
+            <!-- Populated by JS: 2015–2024 -->
+          </div>
+          <div
+            class="klhk-status-row"
+            id="klhk-status-row"
+            style="display: none"
+          >
+            <span class="klhk-status-icon" id="klhk-status-icon">⟳</span>
+            <span class="klhk-status-text" id="klhk-status-text"
+              >Memuat...</span
+            >
+          </div>
+          <div id="raster-info" style="display: none"></div>
+          <div class="klhk-shp-row" id="klhk-shp-row" style="display: none">
+            <span class="klhk-shp-badge"
+              >Batas: <span id="klhk-shp-name">hutan.shp</span> (otomatis)</span
+            >
+          </div>
+        </div>
+
+        <div class="error-box" id="error-box"></div>
+
+        <!-- hidden: lbl-export (dipakai i18n, tidak ditampilkan) -->
+        <span id="lbl-export" style="display: none"></span>
+
+        <!-- hidden elements to keep IDs alive for JS -->
+        <span id="lbl-breakdown" style="display: none"></span>
+        <span id="lbl-class-title" style="display: none"></span>
+        <span id="res-area" style="display: none">0 ha</span>
+        <span id="res-stock" style="display: none">0</span>
+        <span id="res-co2" style="display: none">0</span>
+        <span id="res-method-badge" style="display: none">IPCC 2019</span>
+        <span id="lbl-res-title" style="display: none"></span>
+        <span id="lbl-total-stock" style="display: none"></span>
+        <span id="lbl-equiv" style="display: none"></span>
+        <div class="result-panel" id="result-panel" style="display: none"></div>
+        <!-- hidden calc-btn to keep JS toggleCalcBtn working -->
+        <button
+          id="calc-btn"
+          style="display: none"
+          onclick="calculate()"
+        ></button>
+        <span id="lbl-calc" style="display: none"></span>
+      </aside>
+
+      <!-- ── MAP AREA ──────────────────────────────────────────── -->
+      <div class="content-area">
+        <!-- ── TAB: CARBON ─── -->
+        <div class="tab-pane active" id="pane-carbon">
+          <!-- TOP ROW: right panel + map -->
+          <div class="carbon-top-row">
+            <!-- ── RIGHT PANEL ──────────────────────────────── -->
+            <div class="right-panel" id="right-panel">
+              <!-- Summary -->
+              <div class="rp-top">
+                <div class="rp-header">
+                  <div class="rp-title" id="rp-title">
+                    Analisis Tutupan Lahan
+                  </div>
+                  <button
+                    class="rp-toggle-btn"
+                    id="rp-toggle-btn"
+                    onclick="toggleRightPanel()"
+                    title="Tutup panel"
+                  >
+                    ›
+                  </button>
+                </div>
+                <div class="rp-stats-row">
+                  <div class="rp-stat">
+                    <div class="rp-stat-v" id="rp-total-area">–</div>
+                    <div class="rp-stat-k">Total Area</div>
+                  </div>
+                  <div class="rp-stat">
+                    <div class="rp-stat-v accent" id="rp-total-carbon">–</div>
+                    <div class="rp-stat-k">Stok Karbon</div>
+                  </div>
+                </div>
+                <!-- CO2eq — semua metode -->
+                <div class="rp-extra-row">
+                  <span class="rp-extra-lbl">CO₂ Equivalen</span>
+                  <span class="rp-extra-val" id="rp-total-co2">–</span>
+                </div>
+                <!-- NDVI stats — Literature only -->
+                <div
+                  class="rp-extra-row"
+                  id="rp-ndvi-stat"
+                  style="display: none"
+                >
+                  <span class="rp-extra-lbl">Rerata NDVI</span>
+                  <span class="rp-extra-val" id="rp-ndvi-val">–</span>
+                </div>
+                <div
+                  class="rp-extra-row"
+                  id="rp-ndvi-density-stat"
+                  style="display: none"
+                >
+                  <span class="rp-extra-lbl">Densitas Rata-rata</span>
+                  <span
+                    class="rp-extra-val"
+                    id="rp-ndvi-extra"
+                    style="color: var(--accent-light)"
+                    >–</span
+                  >
+                </div>
+              </div>
+
+              <!-- Literature source info (hidden, kept for JS compat) -->
+              <div id="rp-ndvi-section" style="display: none"></div>
+              <div id="rp-ndvi-stat" style="display: none"></div>
+              <div id="rp-ndvi-density-stat" style="display: none"></div>
+              <div id="rp-ndvi-val" style="display: none"></div>
+              <div id="rp-ndvi-extra" style="display: none"></div>
+              <div id="rp-ndvi-breakdown" style="display: none"></div>
+
+              <!-- Donut Chart -->
+              <div class="rp-donut-section">
+                <div class="rp-section-lbl" id="rp-donut-lbl">
+                  Distribusi Area
+                </div>
+                <div class="rp-donut-wrap">
+                  <canvas id="chart-donut"></canvas>
+                  <div class="rp-chart-empty" id="rp-chart-empty">
+                    Hitung stok karbon<br />untuk melihat grafik
+                  </div>
+                </div>
+              </div>
+
+              <!-- Per-class list -->
+              <div class="rp-class-section">
+                <div class="rp-section-lbl" id="rp-class-lbl">
+                  Per Kelas Tutupan
+                </div>
+                <div id="rp-class-list">
+                  <div class="rp-empty">
+                    Belum ada data.<br />Hitung terlebih dahulu.
+                  </div>
+                </div>
+              </div>
+            </div>
+            <!-- /right-panel -->
+
+            <div class="map-wrap">
+              <div id="map"></div>
+
+              <!-- Layer toggle -->
+              <div class="layer-toggle-group" id="layer-toggle-group">
+                <button
+                  class="ltg-btn active"
+                  id="ltg-cover"
+                  onclick="setMapLayer('cover')"
+                >
+                  Tutupan Lahan
+                </button>
+                <button
+                  class="ltg-btn"
+                  id="ltg-carbon"
+                  onclick="setMapLayer('carbon')"
+                >
+                  Stok Karbon
+                </button>
+                <button
+                  class="ltg-btn"
+                  id="ltg-namaHutan"
+                  onclick="setMapLayer('namaHutan')"
+                >
+                  Nama Hutan
+                </button>
+              </div>
+
+              <!-- Right panel re-open tab -->
+              <button
+                class="rp-open-tab"
+                id="rp-open-tab"
+                onclick="toggleRightPanel()"
+                title="Buka panel"
+              >
+                ‹
+              </button>
+
+              <!-- Draw hint -->
+              <div class="draw-hint" id="draw-hint">
+                Klik peta untuk menggambar polygon. Klik ganda untuk selesai.
+              </div>
+
+              <!-- Map layer legend (bottom-left, context-sensitive per active layer) -->
+              <div
+                class="map-layer-legend"
+                id="map-layer-legend"
+                style="display: none"
+              >
+                <div class="mll-title" id="mll-title"></div>
+                <div id="mll-body"></div>
+              </div>
+            </div>
+          </div>
+          <!-- /carbon-top-row -->
+
+          <!-- ── BOTTOM BAR TOGGLE STRIP ──────────────────── -->
+          <div
+            class="bb-toggle-strip"
+            id="bb-toggle-strip"
+            style="display: none"
+            onclick="toggleBottomBar()"
+          >
+            <span class="bbt-label">Per Nama Hutan</span>
+            <span class="bbt-count" id="bbt-count"></span>
+            <span class="bbt-arrow" id="bbt-arrow">▲</span>
+          </div>
+
+          <!-- ── BOTTOM BAR: Per Nama Hutan ──────────────── -->
+          <div class="bottom-bar" id="bottom-bar">
+            <div class="bb-donut-section">
+              <div class="bb-donut-title">Per Jenis Hutan</div>
+              <div class="bb-donut-wrap">
+                <canvas id="chart-forest-donut"></canvas>
+                <div
+                  class="rp-chart-empty"
+                  id="bb-donut-empty"
+                  style="font-size: 10px"
+                >
+                  –
+                </div>
+              </div>
+            </div>
+            <div class="bb-forest-list" id="bb-forest-list">
+              <div class="bb-empty" id="bb-empty-msg">
+                Hitung stok karbon untuk melihat data per hutan.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── TAB: KONSERVASI ─── -->
+        <div class="tab-pane" id="pane-konservasi">
+          <div class="map-wrap">
+            <div id="map2"></div>
+            <div class="legend-panel" id="legend-panel2">
+              <div class="legend-title">Klasifikasi Konservasi & Restorasi</div>
+              <div class="legend-list" id="legend-list2">
+                <div class="legend-item">
+                  <span class="li-dot" style="background: #0d9488"></span
+                  >Konservasi Prioritas Tinggi
+                </div>
+                <div class="legend-item">
+                  <span class="li-dot" style="background: #52b788"></span
+                  >Konservasi dengan Pemantauan
+                </div>
+                <div class="legend-item">
+                  <span class="li-dot" style="background: #e07a5f"></span
+                  >Restorasi Aktif
+                </div>
+                <div class="legend-item">
+                  <span class="li-dot" style="background: #f2cc8f"></span
+                  >Waspada/Transisi
+                </div>
+              </div>
+              <div
+                style="
+                  margin-top: 12px;
+                  padding-top: 8px;
+                  border-top: 1px solid #ddd;
+                "
+              >
+                <div style="font-size: 10px; color: #666; margin-bottom: 6px">
+                  <strong>Metode:</strong> Regresi Linear (2015-2024)
+                </div>
+                <div style="font-size: 9px; color: #888">
+                  Slope (β₁) + R² + Posisi Relatif
+                </div>
+              </div>
+            </div>
+            <div class="konservasi-stats" id="konservasi-stats">
+              <div class="ks-item">
+                <div class="ks-v" id="ks-total-area">–</div>
+                <div class="ks-k">Total Area Konservasi</div>
+              </div>
+              <div class="ks-item">
+                <div class="ks-v" id="ks-species">–</div>
+                <div class="ks-k">Estimasi Spesies</div>
+              </div>
+              <div class="ks-item">
+                <div class="ks-v" id="ks-carbon-protect">–</div>
+                <div class="ks-k">Karbon Terlindungi</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── TAB: STATISTIK ─── -->
+        <div class="tab-pane" id="pane-statistik">
+          <div class="stats-layout">
+            <!-- Left: nav tabs -->
+            <div class="stats-sidebar">
+              <div class="section-label">Tampilan</div>
+              <button
+                class="stats-nav-btn active"
+                onclick="switchStatsView('carbon')"
+                id="snv-carbon"
+              >
+                Carbon Stock
+              </button>
+              <button
+                class="stats-nav-btn"
+                onclick="switchStatsView('statistik')"
+                id="snv-statistik"
+              >
+                Statistik
+              </button>
+              <button
+                class="stats-nav-btn"
+                onclick="loadAndShowTrenTahunan()"
+                id="snv-tahunan"
+              >
+                Tren Tahunan
+              </button>
+
+              <div class="section-label" style="margin-top: 14px">
+                Statistik Summary
+              </div>
+              <div class="stats-summary" id="stats-summary">
+                <div class="ss-item">
+                  <span class="ss-k">Total Area</span
+                  ><span class="ss-v" id="ss-area">–</span>
+                </div>
+                <div class="ss-item">
+                  <span class="ss-k">Total Carbon</span
+                  ><span class="ss-v" id="ss-carbon">–</span>
+                </div>
+                <div class="ss-item">
+                  <span class="ss-k">Total CO₂eq</span
+                  ><span class="ss-v" id="ss-co2">–</span>
+                </div>
+                <div class="ss-item">
+                  <span class="ss-k">Kelas Dominan</span
+                  ><span class="ss-v" id="ss-dominant">–</span>
+                </div>
+                <div class="ss-item">
+                  <span class="ss-k">Metode</span
+                  ><span class="ss-v" id="ss-method">IPCC 2019</span>
+                </div>
+              </div>
+
+              <div class="section-label" style="margin-top: 14px">Export</div>
+              <button class="btn-export" onclick="exportChart()">
+                Ekspor Chart
+              </button>
+            </div>
+
+            <!-- Right: Charts -->
+            <div class="stats-main">
+              <!-- Carbon bar chart -->
+              <div class="chart-pane active" id="cp-carbon">
+                <div class="chart-header">
+                  <div class="ch-title">
+                    Stok Karbon per Kelas Tutupan Lahan
+                  </div>
+                  <div class="ch-sub" id="ch-sub-carbon">
+                    Berdasarkan upload GeoTIFF · Metodologi IPCC 2019
+                  </div>
+                </div>
+                <div class="chart-container">
+                  <canvas id="chart-carbon"></canvas>
+                  <div class="chart-empty" id="chart-empty-carbon">
+                    Upload GeoTIFF dan klik "Hitung" untuk melihat grafik
+                  </div>
+                </div>
+              </div>
+
+              <!-- Statistik detail table (per tutupan lahan + per nama hutan) -->
+              <div class="chart-pane" id="cp-statistik">
+                <div class="chart-header">
+                  <div class="ch-title">Tabel Statistik Detail</div>
+                  <div class="ch-sub">
+                    Per tutupan lahan &amp; per nama hutan
+                  </div>
+                </div>
+
+                <!-- Sub: Per Tutupan Lahan -->
+                <div class="stats-section-hdr">Per Tutupan Lahan</div>
+                <div class="table-container">
+                  <table class="stats-table" id="stats-table">
+                    <thead>
+                      <tr>
+                        <th>Kode</th>
+                        <th>Kelas Tutupan</th>
+                        <th>Area (ha)</th>
+                        <th>AGB Total (Mg)</th>
+                        <th>Total Carbon (tC)</th>
+                        <th>CO₂eq (tCO₂)</th>
+                      </tr>
+                    </thead>
+                    <tbody id="stats-tbody">
+                      <tr>
+                        <td
+                          colspan="6"
+                          style="
+                            text-align: center;
+                            padding: 30px;
+                            color: var(--text-muted);
+                          "
+                        >
+                          Belum ada data. Hitung terlebih dahulu.
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+
+                <!-- Sub: Per Nama Hutan -->
+                <div class="stats-section-hdr" style="margin-top: 20px">
+                  Per Nama Hutan
+                </div>
+                <div class="table-container">
+                  <table class="stats-table" id="forest-stats-table">
+                    <thead>
+                      <tr>
+                        <th>#</th>
+                        <th>Nama Hutan (Namobj)</th>
+                        <th>Jenis Hutan (Kelas)</th>
+                        <th>Area (ha)</th>
+                        <th>Total Carbon (tC)</th>
+                        <th>CO₂eq (tCO₂)</th>
+                      </tr>
+                    </thead>
+                    <tbody id="forest-stats-tbody">
+                      <tr>
+                        <td
+                          colspan="6"
+                          style="
+                            text-align: center;
+                            padding: 30px;
+                            color: var(--text-muted);
+                          "
+                        >
+                          Belum ada data. Pilih tahun KLHK dan hitung terlebih
+                          dahulu.
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <!-- cp-perhutan: placeholder untuk kompatibilitas JS (tidak ditampilkan) -->
+              <div id="cp-perhutan" style="display: none"></div>
+              <!-- Tren Tahunan KLHK (2015–2024) -->
+              <div class="chart-pane" id="cp-tahunan">
+                <div class="chart-header">
+                  <div class="ch-title">Tren Stok Karbon 2015 – 2024</div>
+                  <div class="ch-sub">
+                    Data KLHK (MapBiomas) · Semua Tahun Tersedia
+                  </div>
+                </div>
+                <!-- Sub-tab nav -->
+                <div class="tahunan-nav">
+                  <button
+                    class="ty-btn active"
+                    onclick="switchTahunanView('tren')"
+                    id="tyv-tren"
+                  >
+                    Tren Total
+                  </button>
+                  <button
+                    class="ty-btn"
+                    onclick="switchTahunanView('kelas')"
+                    id="tyv-kelas"
+                  >
+                    Per Tutupan Lahan
+                  </button>
+                  <button
+                    class="ty-btn"
+                    onclick="switchTahunanView('nama')"
+                    id="tyv-nama"
+                  >
+                    Per Nama Hutan
+                  </button>
+                  <button
+                    class="ty-btn"
+                    onclick="switchTahunanView('tabel')"
+                    id="tyv-tabel"
+                  >
+                    Tabel Lengkap
+                  </button>
+                  <button
+                    class="ty-btn ty-btn-pdf"
+                    onclick="exportTahunanPDF()"
+                    title="Ekspor semua data ke PDF"
+                  >
+                    ↓ PDF
+                  </button>
+                </div>
+
+                <!-- Tren Total: line chart AGB/BGB/Total -->
+                <div class="ty-pane active" id="typ-tren">
+                  <div class="chart-container">
+                    <canvas id="chart-trend"></canvas>
+                    <div class="chart-empty" id="chart-empty-trend">
+                      Memuat data semua tahun…
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Per Tutupan Lahan: 2 chart + tabel faktor -->
+                <div class="ty-pane" id="typ-kelas">
+                  <div class="ty-scroll">
+                    <!-- Chart 1: multi-line per kelas -->
+                    <div class="ty-chart-block">
+                      <div class="ty-chart-title">
+                        Tren Carbon per Kelas (2015–2024)
+                      </div>
+                      <div class="ty-chart-canvas-wrap">
+                        <canvas id="chart-kelas-line"></canvas>
+                      </div>
+                    </div>
+                    <!-- Chart 2: stacked bar distribusi -->
+                    <div class="ty-chart-block">
+                      <div class="ty-chart-title">
+                        Distribusi Carbon per Tahun (Stacked)
+                      </div>
+                      <div class="ty-chart-canvas-wrap">
+                        <canvas id="chart-trend-kelas"></canvas>
+                        <div class="chart-empty" id="chart-empty-kelas">
+                          Memuat…
+                        </div>
+                      </div>
+                    </div>
+                    <!-- Tabel faktor -->
+                    <div class="ty-table-block">
+                      <div class="kd-title">
+                        Rincian Faktor Karbon per Kelas Tutupan Lahan
+                      </div>
+                      <table class="stats-table" id="table-kelas-detail">
+                        <thead>
+                          <tr>
+                            <th>Kelas Tutupan</th>
+                            <th>AGB ref (Mg/ha)</th>
+                            <th>BGB ref (Mg/ha)</th>
+                            <th>CF</th>
+                            <th>Biomassa (Mg/ha)</th>
+                            <th>Rata-rata Area (ha)</th>
+                            <th>Rata-rata Carbon (tC)</th>
+                            <th>% dari Total</th>
+                          </tr>
+                        </thead>
+                        <tbody id="tbody-kelas-detail">
+                          <tr>
+                            <td
+                              colspan="8"
+                              style="
+                                text-align: center;
+                                padding: 20px;
+                                color: var(--text-muted);
+                              "
+                            >
+                              Memuat…
+                            </td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Per Nama Hutan: line chart top forests + tabel -->
+                <div class="ty-pane" id="typ-nama">
+                  <div class="ty-scroll">
+                    <!-- Chart: multi-line per nama hutan -->
+                    <div class="ty-chart-block" style="flex: 0 0 420px">
+                      <div class="ty-chart-title">
+                        Tren Carbon per Nama Hutan (Top 15, 2015–2024)
+                      </div>
+                      <div class="ty-chart-canvas-wrap">
+                        <canvas id="chart-nama-line"></canvas>
+                        <div class="chart-empty" id="chart-empty-nama">
+                          Memuat…
+                        </div>
+                      </div>
+                    </div>
+                    <!-- Tabel ringkasan per nama hutan -->
+                    <div class="ty-table-block">
+                      <div class="kd-title">
+                        Ringkasan Carbon per Nama Hutan (Rata-rata 2015–2024)
+                      </div>
+                      <table class="stats-table" id="table-nama-summary">
+                        <thead>
+                          <tr>
+                            <th>#</th>
+                            <th>Nama Hutan</th>
+                            <th>Jenis Hutan</th>
+                            <th style="text-align: right">Area (ha)</th>
+                            <th style="text-align: right">Avg Carbon (tC)</th>
+                            <th style="text-align: right">CO₂eq (tCO₂)</th>
+                            <th style="text-align: right">Min (tC)</th>
+                            <th style="text-align: right">Max (tC)</th>
+                          </tr>
+                        </thead>
+                        <tbody id="tbody-nama-summary">
+                          <tr>
+                            <td
+                              colspan="8"
+                              style="
+                                text-align: center;
+                                padding: 20px;
+                                color: var(--text-muted);
+                              "
+                            >
+                              Memuat…
+                            </td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+                <!-- Tabel lengkap semua tahun -->
+                <div class="ty-pane" id="typ-tabel">
+                  <div class="table-container">
+                    <table class="stats-table" id="table-tahunan">
+                      <thead>
+                        <tr>
+                          <th style="width: 60px">Tahun</th>
+                          <th>Kelas Tutupan</th>
+                          <th style="text-align: right">Area (ha)</th>
+                          <th style="text-align: right">AGB (tC)</th>
+                          <th style="text-align: right">BGB (tC)</th>
+                          <th style="text-align: right">Total Carbon (tC)</th>
+                          <th style="text-align: right">CO₂eq (tCO₂)</th>
+                          <th style="text-align: center">Δ Carbon</th>
+                        </tr>
+                      </thead>
+                      <tbody id="tbody-tahunan">
+                        <tr>
+                          <td
+                            colspan="8"
+                            style="
+                              text-align: center;
+                              padding: 30px;
+                              color: var(--text-muted);
+                            "
+                          >
+                            Pilih metodologi KLHK untuk melihat data
+                            multi-tahun.
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- /content-area -->
+    </div>
+    <!-- /main -->
+
+    <!-- Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/geotiff@2.1.3"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+
+    <script>
+      if (
+        typeof window.GeoTIFF === "undefined" &&
+        typeof window.geotiff !== "undefined"
+      ) {
+        window.GeoTIFF = window.geotiff;
+      }
+    </script>
+
+    <script src="https://cdn.jsdelivr.net/npm/shpjs@latest/dist/shp.min.js"></script>
+    <!-- Google Identity Services (optional, for GEE Sign-In) -->
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <script src="js/data.js"></script>
+    <script src="js/i18n.js"></script>
+    <script src="js/raster.js"></script>
+    <script src="js/charts.js"></script>
+    <script src="js/export.js"></script>
+    <script src="js/gee.js"></script>
+    <script src="js/app.js"></script>
+  </body>
+</html>

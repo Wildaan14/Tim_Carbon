@@ -1,8 +1,7 @@
 import { defineConfig } from "vite";
 
 export default defineConfig({
-  root: "client",
-  publicDir: "../public",
+  root: ".",
   server: {
     fs: { strict: false },
   },
