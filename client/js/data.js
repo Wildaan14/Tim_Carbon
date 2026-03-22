@@ -10,48 +10,48 @@ const LANDCOVER_CLASS_VALUES = {
     agb: 345.46,
     bgb: 100.89,
     cf: 0.47,
-    color: "#1a6b2e",
-  }, // Hijau tua
+    color: "#1b4332",
+  }, // Deep Emerald
   5: {
     name: "Mangrove",
     nameId: "Mangrove",
     agb: 236.17,
     bgb: 73.45,
     cf: 0.47,
-    color: "#00897b",
-  }, // Teal kuat
+    color: "#081c15",
+  }, // Dark Lush Green
   13: {
     name: "Non-forest Vegetation",
     nameId: "Tumbuhan non Hutan",
     agb: 19.34,
     bgb: 4.56,
     cf: 0.47,
-    color: "#b5cc00",
-  }, // Kuning-lime
+    color: "#2d6a4f",
+  }, // Medium Green
   21: {
     name: "Other Agriculture",
     nameId: "Pertanian Lainnya",
     agb: 64.64,
     bgb: 12.93,
     cf: 0.47,
-    color: "#e67e00",
-  }, // Oranye vivid
+    color: "#95d5b2",
+  }, // Sage Green
   24: {
     name: "Settlement",
     nameId: "Permukiman",
     agb: 2.17,
     bgb: 0.63,
     cf: 0.47,
-    color: "#d32f2f",
-  }, // Merah kuat
+    color: "#7f8c8d",
+  }, // Warm Grey
   25: {
     name: "Other Non-vegetation",
     nameId: "Non Vegetasi Lainnya",
     agb: 2.4,
     bgb: 0.57,
     cf: 0.47,
-    color: "#bdbdbd",
-  }, // Abu terang
+    color: "#95a5a6",
+  }, // Muted Grey
   30: {
     name: "Mining",
     nameId: "Tambang",
@@ -59,39 +59,39 @@ const LANDCOVER_CLASS_VALUES = {
     bgb: 0.0,
     cf: 0.47,
     color: "#5d4037",
-  }, // Coklat
+  }, // Earthy Brown
   31: {
     name: "Shrimp Pond",
     nameId: "Tambak Udang",
     agb: 0.0,
     bgb: 0.0,
     cf: 0.47,
-    color: "#0288d1",
-  }, // Biru cerah
+    color: "#2980b9",
+  }, // Ocean Blue
   33: {
     name: "River",
     nameId: "Sungai",
     agb: 0.0,
     bgb: 0.0,
     cf: 0.47,
-    color: "#29b6f6",
-  }, // Biru langit
+    color: "#3498db",
+  }, // Soft Blue
   35: {
     name: "Oil Palm",
     nameId: "Sawit",
     agb: 48.1,
     bgb: 15.63,
     cf: 0.47,
-    color: "#7b1fa2",
-  }, // Ungu — sangat berbeda
+    color: "#52b788",
+  }, // Medium-Light Green
   40: {
     name: "Rice Paddy",
     nameId: "Sawah",
     agb: 10.0,
     bgb: 2.36,
     cf: 0.47,
-    color: "#f9a825",
-  }, // Kuning emas
+    color: "#d8f3dc",
+  }, // Very Pale Green
 };
 
 // Faktor konversi karbon ke CO₂
