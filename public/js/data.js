@@ -265,33 +265,33 @@ function fmtDec(n, d = 2) {
 const CLASSIFICATION_CATEGORIES = {
   KONSERVASI_KETAT: {
     id: "konservasi_ketat",
-    name: "Konservasi Ketat",
-    nameEn: "Strict Conservation",
-    description: "> 100 tC/ha (Tren Positif)",
+    name: "Zona Konservasi Ketat",
+    nameEn: "Strict Conservation Zone",
+    description: "> 100 tC/ha (Tren Positif Signifikan)",
     color: "#0d9488", // Teal
     priority: 1,
   },
-  PEMANTAUAN_INTENSIF: {
-    id: "pemantauan_intensif",
-    name: "Konservasi & Pemantauan",
-    nameEn: "Conservation & Monitoring",
-    description: "> 100 tC/ha (Negatif) / 40-100 tC/ha (Positif)",
+  KONSERVASI_INTENSIF: {
+    id: "konservasi_intensif",
+    name: "Zona Konservasi Intensif",
+    nameEn: "Intensive Conservation Zone",
+    description: "40-100 tC/ha (Stabil / Potensi Naik) atau > 100 tC/ha (Stabil)",
     color: "#52b788", // Green
     priority: 2,
   },
   RESTORASI_PASIF: {
     id: "restorasi_pasif",
-    name: "Restorasi Pasif / Pencegahan",
-    nameEn: "Passive Restoration",
-    description: "40-100 tC/ha (Negatif) / < 40 tC/ha (Positif)",
+    name: "Zona Restorasi Pasif",
+    nameEn: "Passive Restoration Zone",
+    description: "< 40 tC/ha (Positif Signifikan) atau 40-100 tC/ha (Negatif)",
     color: "#f2cc8f", // Yellow
     priority: 3,
   },
   RESTORASI_AKTIF: {
     id: "restorasi_aktif",
-    name: "Restorasi Aktif Prioritas",
-    nameEn: "Active Restoration Priority",
-    description: "< 40 tC/ha (Tren Negatif)",
+    name: "Zona Restorasi Aktif",
+    nameEn: "Active Restoration Zone",
+    description: "< 40 tC/ha (Tren Negatif atau Stabil)",
     color: "#e07a5f", // Coral/Orange
     priority: 4,
   },
@@ -305,7 +305,7 @@ const CLASSIFICATION_CATEGORIES = {
  */
 function linearRegression(years, values) {
   const n = years.length;
-  if (n < 2) return { slope: 0, intercept: 0, r2: 0, n: n };
+  if (n < 2) return { slope: 0, intercept: 0, r2: 0, n: n, pValue: 1, isSignificant: false, tStat: 0 };
 
   // Calculate means
   const sumX = years.reduce((a, b) => a + b, 0);
@@ -324,7 +324,7 @@ function linearRegression(years, values) {
   const slope = denominator !== 0 ? numerator / denominator : 0;
   const intercept = meanY - slope * meanX;
 
-  // Calculate R² (coefficient of determination)
+  // Calculate R² (coefficient of determination) and SSE
   let ssRes = 0; // Residual sum of squares
   let ssTot = 0; // Total sum of squares
   for (let i = 0; i < n; i++) {
@@ -335,7 +335,38 @@ function linearRegression(years, values) {
 
   const r2 = ssTot !== 0 ? 1 - ssRes / ssTot : 0;
 
-  return { slope, intercept, r2: Math.max(0, r2), n };
+  // Calculate p-value (t-test for slope)
+  const df = n - 2;
+  let tStat = 0;
+  let isSignificant = false;
+  
+  if (df > 0 && denominator > 0 && ssRes > 0) {
+    const mse = ssRes / df;
+    const seB = Math.sqrt(mse / denominator);
+    tStat = slope / seB;
+    
+    // T-critical values for alpha = 0.05 (two-tailed) based on degrees of freedom
+    const tCritTable = {
+      1: 12.706, 2: 4.303, 3: 3.182, 4: 2.776, 5: 2.571, 
+      6: 2.447, 7: 2.365, 8: 2.306, 9: 2.262, 10: 2.228
+    };
+    const tCrit = tCritTable[df] || 2.0; // Fallback for df > 10
+    
+    isSignificant = Math.abs(tStat) > tCrit;
+  } else if (ssRes === 0 && slope !== 0) {
+    // Perfect fit
+    isSignificant = true;
+    tStat = 999;
+  }
+
+  return { 
+    slope, 
+    intercept, 
+    r2: Math.max(0, r2), 
+    n,
+    tStat,
+    isSignificant
+  };
 }
 
 /**
@@ -346,37 +377,66 @@ function linearRegression(years, values) {
  * @param {number} avgStock - Average carbon stock across all forests
  * @returns {Object} Classification result
  */
-function classifyForest(slope, r2, currentStock, areaHa) {
-  // Hitung Carbon Density aktual (tC/ha)
-  const carbonDensity = areaHa > 0 ? currentStock / areaHa : 0;
-  
-  // Tren signifikan dari Regresi Linear (Slope b > 0 positif, b < 0 negatif)
-  const isPositive = slope > 0;
-  
+/**
+ * Classify forest based on carbon density trend and significance
+ * @param {number} slopeDensity - Regression slope of carbon density (tC/ha/year)
+ * @param {boolean} isSignificant - Whether the trend is statistically significant (p < 0.05)
+ * @param {number} r2 - R² value (0-1)
+ * @param {number} carbonDensity - Current carbon density (2024) in tC/ha
+ * @param {number} currentStock - Current total carbon stock (2024)
+ * @param {number} areaHa - Forest area in hectares
+ * @returns {Object} Classification result
+ */
+function classifyForest(slopeDensity, isSignificant, r2, carbonDensity, currentStock, areaHa) {
   let category;
 
-  // Axis 1: Carbon Density Thresholds
-  if (carbonDensity > 100) { // Zona Konservasi
-    if (isPositive) category = CLASSIFICATION_CATEGORIES.KONSERVASI_KETAT;
-    else category = CLASSIFICATION_CATEGORIES.PEMANTAUAN_INTENSIF;
-  } else if (carbonDensity >= 40 && carbonDensity <= 100) { // Zona Konservasi Intensif
-    if (isPositive) category = CLASSIFICATION_CATEGORIES.PEMANTAUAN_INTENSIF;
-    else category = CLASSIFICATION_CATEGORIES.RESTORASI_PASIF;
-  } else { // Zona Restorasi (< 40)
-    if (isPositive) category = CLASSIFICATION_CATEGORIES.RESTORASI_PASIF;
-    else category = CLASSIFICATION_CATEGORIES.RESTORASI_AKTIF;
+  // Tren regresi: positif signifikan (b > 0, p < 0.05)
+  const isPositiveSignificant = slopeDensity > 0 && isSignificant;
+  // Tren regresi: negatif signifikan (b < 0, p < 0.05)
+  const isNegativeSignificant = slopeDensity < 0 && isSignificant;
+
+  // Aturan Kombinasi Final Zona (dari user)
+  if (carbonDensity > 100) {
+    if (isPositiveSignificant) {
+      category = CLASSIFICATION_CATEGORIES.KONSERVASI_KETAT;
+    } else {
+      // Jika stabil (p >= 0.05) atau negatif signifikan
+      // (User hanya mention >100 & Positif Signifikan sbg "Ketat", yg lain biasanya Konservasi Intensif)
+      category = CLASSIFICATION_CATEGORIES.KONSERVASI_INTENSIF;
+    }
+  } else if (carbonDensity >= 40 && carbonDensity <= 100) {
+    if (isPositiveSignificant || !isSignificant) {
+      // 40-100 & Positif Signifikan -> Intensif Potensi Naik
+      // 40-100 & Tidak Signifikan (Stabil) -> Intensif Stabil
+      category = CLASSIFICATION_CATEGORIES.KONSERVASI_INTENSIF;
+    } else {
+      // 40-100 & Negatif Signifikan -> Restorasi Pasif
+      category = CLASSIFICATION_CATEGORIES.RESTORASI_PASIF;
+    }
+  } else { // < 40
+    if (isPositiveSignificant) {
+      // < 40 & Positif Signifikan -> Restorasi Pasif
+      category = CLASSIFICATION_CATEGORIES.RESTORASI_PASIF;
+    } else {
+      // < 40 & Negatif Signifikan atau Stabil -> Restorasi Aktif
+      category = CLASSIFICATION_CATEGORIES.RESTORASI_AKTIF;
+    }
   }
+
+  // Untuk teks konsistensi di pop-up
+  let resTrend = "Stabil";
+  if (isSignificant) resTrend = slopeDensity > 0 ? "Positif Signifikan" : "Negatif Signifikan";
 
   return {
     category,
-    slope: slope, // Laju perubahan total (tC/thn)
-    slopeDensity: areaHa > 0 ? slope / areaHa : 0, // Laju perubahan per Hektar (tC/ha/thn)
+    slope: slopeDensity * areaHa, // Total carbon change per year approx
+    slopeDensity: slopeDensity, // tC/ha/thn
     r2,
     currentStock,
     areaHa,
     carbonDensity,
-    trend: slope > 0 ? "positif" : slope < 0 ? "negatif" : "stagnan",
-    consistency: r2 >= 0.5 ? "konsisten" : r2 >= 0.2 ? "sedang" : "tidak teratur",
+    trend: resTrend,
+    consistency: isSignificant ? (r2 >= 0.7 ? "Kuat" : r2 >= 0.4 ? "Sedang" : "Lemah") : "Tidak Signifikan (p≥0.05)",
   };
 }
 
@@ -416,27 +476,32 @@ function calculateAllClassifications(carbonByYear) {
   // Calculate classification for each forest
   const results = [];
   forestNames.forEach((key) => {
-    const carbonValues = years.map(
-      (y) => carbonByYear[y]?.byNama?.[key]?.totalCarbon || 0,
-    );
+    // Ekstraksi nilai carbon density untuk regresi
+    const densityValues = years.map((y) => {
+      const d = carbonByYear[y]?.byNama?.[key];
+      return d && d.totalArea > 0 ? d.totalCarbon / d.totalArea : 0;
+    });
 
     // Skip forests with no data
-    if (carbonValues.every((v) => v === 0)) return;
+    if (densityValues.every((v) => v === 0)) return;
 
-    const { slope, r2 } = linearRegression(years, carbonValues);
-    const currentStock = carbonValues[carbonValues.length - 1] || 0;
+    // Regresi terhadap Carbon Density, bukan Total Carbon
+    const { slope: slopeDensity, r2, isSignificant } = linearRegression(years, densityValues);
+    const carbonDensity = densityValues[densityValues.length - 1] || 0;
 
     // Get the forest name, kelas, and area from the latest data
     const forestData = carbonByYear[latestYear]?.byNama?.[key];
     const areaHa = forestData?.totalArea || 0;
+    const currentStock = forestData?.totalCarbon || 0;
 
-    const classification = classifyForest(slope, r2, currentStock, areaHa);
+    const classification = classifyForest(slopeDensity, isSignificant, r2, carbonDensity, currentStock, areaHa);
 
     results.push({
       key,
       nama: forestData?.namobj || key.split("||")[0],
       kelas: forestData?.kelas || key.split("||")[1] || "–",
       totalArea: areaHa,
+      currentStock: currentStock,
       ...classification,
     });
   });

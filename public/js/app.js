@@ -2852,7 +2852,7 @@ function renderConservationLegend(classificationResults) {
   // Count forests per category
   const counts = {
     konservasi_ketat: 0,
-    pemantauan_intensif: 0,
+    konservasi_intensif: 0,
     restorasi_pasif: 0,
     restorasi_aktif: 0,
   };
@@ -2864,25 +2864,25 @@ function renderConservationLegend(classificationResults) {
   const categories = [
     {
       id: "konservasi_ketat",
-      name: "Konservasi Ketat",
+      name: "Zona Konservasi Ketat",
       color: "#0d9488",
       count: counts.konservasi_ketat,
     },
     {
-      id: "pemantauan_intensif",
-      name: "Pemantauan Intensif",
+      id: "konservasi_intensif",
+      name: "Zona Konservasi Intensif",
       color: "#52b788",
-      count: counts.pemantauan_intensif,
+      count: counts.konservasi_intensif,
     },
     {
       id: "restorasi_pasif",
-      name: "Restorasi Pasif/Penyangga",
+      name: "Zona Restorasi Pasif",
       color: "#f2cc8f",
       count: counts.restorasi_pasif,
     },
     {
       id: "restorasi_aktif",
-      name: "Restorasi Aktif",
+      name: "Zona Restorasi Aktif",
       color: "#e07a5f",
       count: counts.restorasi_aktif,
     },
@@ -2907,7 +2907,7 @@ function updateConservationStats(classificationResults) {
   // Calculate totals per category
   const byCategory = {
     konservasi_ketat: { count: 0, area: 0, carbon: 0 },
-    pemantauan_intensif: { count: 0, area: 0, carbon: 0 },
+    konservasi_intensif: { count: 0, area: 0, carbon: 0 },
     restorasi_pasif: { count: 0, area: 0, carbon: 0 },
     restorasi_aktif: { count: 0, area: 0, carbon: 0 },
   };
@@ -2926,7 +2926,7 @@ function updateConservationStats(classificationResults) {
   tx("ks-total-area", fmtDec(totalArea) + " ha");
   
   // Total cadangan karbon yang memerlukan perlindungan (Ketat + Pemantauan)
-  const protectCarbon = byCategory.konservasi_ketat.carbon + byCategory.pemantauan_intensif.carbon;
+  const protectCarbon = byCategory.konservasi_ketat.carbon + byCategory.konservasi_intensif.carbon;
   tx("ks-carbon-protect", fmt(protectCarbon) + " tC");
   
   // Tambahkan ringkasan singkat tapi padat di UI
