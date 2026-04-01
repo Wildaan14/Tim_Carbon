@@ -8,3 +8,4 @@ build/
 client/Karbon_Literature/*.tif
 client/hutan/*
 server/node_modules/
+NDVI/2016.tif

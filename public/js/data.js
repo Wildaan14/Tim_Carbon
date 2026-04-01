@@ -305,7 +305,10 @@ const CLASSIFICATION_CATEGORIES = {
  */
 function linearRegression(years, values) {
   const n = years.length;
-  if (n < 2) return { slope: 0, intercept: 0, r2: 0, n: n, pValue: 1, isSignificant: false, tStat: 0 };
+  if (n < 2) return {
+    slope: 0, interce
+    pt: 0, r2: 0, n: n, pValue: 1, isSignificant: false, tStat: 0
+  };
 
   // Calculate means
   const sumX = years.reduce((a, b) => a + b, 0);
@@ -339,19 +342,19 @@ function linearRegression(years, values) {
   const df = n - 2;
   let tStat = 0;
   let isSignificant = false;
-  
+
   if (df > 0 && denominator > 0 && ssRes > 0) {
     const mse = ssRes / df;
     const seB = Math.sqrt(mse / denominator);
     tStat = slope / seB;
-    
+
     // T-critical values for alpha = 0.05 (two-tailed) based on degrees of freedom
     const tCritTable = {
-      1: 12.706, 2: 4.303, 3: 3.182, 4: 2.776, 5: 2.571, 
+      1: 12.706, 2: 4.303, 3: 3.182, 4: 2.776, 5: 2.571,
       6: 2.447, 7: 2.365, 8: 2.306, 9: 2.262, 10: 2.228
     };
     const tCrit = tCritTable[df] || 2.0; // Fallback for df > 10
-    
+
     isSignificant = Math.abs(tStat) > tCrit;
   } else if (ssRes === 0 && slope !== 0) {
     // Perfect fit
@@ -359,10 +362,10 @@ function linearRegression(years, values) {
     tStat = 999;
   }
 
-  return { 
-    slope, 
-    intercept, 
-    r2: Math.max(0, r2), 
+  return {
+    slope,
+    intercept,
+    r2: Math.max(0, r2),
     n,
     tStat,
     isSignificant
