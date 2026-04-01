@@ -1272,7 +1272,7 @@ async function setKlhkYear(year) {
     const { width, height } = state.raster;
     showKlhkStatus(
       "ok",
-      `Data ${year} dimuat ✓ (${width}×${height} px · ${state.raster.crs?.type === "utm" ? "UTM" : "WGS84"})`,
+      `Data ${year} dimuat`,
     );
     if (activeBtn) activeBtn.classList.remove("loading");
 
