@@ -306,8 +306,7 @@ const CLASSIFICATION_CATEGORIES = {
 function linearRegression(years, values) {
   const n = years.length;
   if (n < 2) return {
-    slope: 0, interce
-    pt: 0, r2: 0, n: n, pValue: 1, isSignificant: false, tStat: 0
+    slope: 0, intercept: 0, r2: 0, n: n, pValue: 1, isSignificant: false, tStat: 0
   };
 
   // Calculate means
