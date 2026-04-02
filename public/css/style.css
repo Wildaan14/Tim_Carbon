@@ -1406,14 +1406,12 @@ button {
 /* ── METHOD CONDITIONAL DISPLAY ───────────────────────────── */
 .ipcc-section       { display: none; }
 .literature-section { display: none; }
-.ndvi-section       { display: none; }
 .non-ipcc-section   { display: block; }
 
-[data-method="ipcc"]  .ipcc-section       { display: block; }
-[data-method="ipcc"]  .non-ipcc-section   { display: none !important; }
-[data-method="ndvi"]  .ndvi-section       { display: block; }
-[data-method="ndvi"]  .non-ipcc-section   { display: none !important; }
-[data-method="ndvi"]  .literature-section { display: none !important; }
+[data-method="ipcc"]      .ipcc-section       { display: block; }
+[data-method="ipcc"]      .non-ipcc-section   { display: none !important; }
+[data-method="lefebvre"]  .literature-section { display: block; }
+[data-method="lefebvre"]  .non-ipcc-section   { display: none !important; }
 
 /* ── IPCC TYPE CARDS ───────────────────────────────────────── */
 .ipcc-type-card {

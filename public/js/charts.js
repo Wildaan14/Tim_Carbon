@@ -345,11 +345,11 @@ function renderRightPanel(classData, agg, method) {
       showBiomass: true,
       showNdvi: false,
     },
-    ndvi: {
-      title: "Analisis Stok Karbon NDVI",
-      donutLbl: "Distribusi Area per Hutan",
+    lefebvre: {
+      title: "Analisis Stok Karbon per Nama Hutan",
+      donutLbl: "Distribusi Stok Karbon",
       classLbl: "Per Nama Hutan",
-      source: "Citra NDVI · Rumus Regresi Stok Karbon",
+      source: "Landsat 8 · Pre-computed Stock Carbon (tC/ha)",
       showBiomass: false,
       showNdvi: false,
     },
@@ -380,12 +380,33 @@ function renderRightPanel(classData, agg, method) {
   const ndviStat = el("rp-ndvi-stat");
   const ndviDensStat = el("rp-ndvi-density-stat");
   if (bioSec) bioSec.style.display = c.showBiomass ? "" : "none";
-  if (ndviSec) ndviSec.style.display = "none";
-  if (ndviStat) ndviStat.style.display = "none";
-  if (ndviDensStat) ndviDensStat.style.display = "none";
+  if (ndviSec) ndviSec.style.display = c.showNdvi ? "" : "none";
+  if (ndviStat) ndviStat.style.display = c.showNdvi ? "" : "none";
+  if (ndviDensStat) ndviDensStat.style.display = c.showNdvi ? "" : "none";
 
-  // ── Donut chart: untuk NDVI dan per-hutan gunakan karbon ──
-  if (method === "ndvi") {
+  // ── NDVI mean (Literature) ─────────────────────────────────
+  if (c.showNdvi) {
+    if (el("rp-ndvi-val")) {
+      const mean = window.state?._ndviMean ?? window.state?.ndviMean;
+      el("rp-ndvi-val").textContent =
+        mean != null && !isNaN(mean) ? fmtDec(mean, 3) : "–";
+    }
+    // Rata-rata karbon density
+    const rpNdviExtra = el("rp-ndvi-extra");
+    if (rpNdviExtra) {
+      const totalC = Object.values(classData).reduce(
+        (s, d) => s + (d.carbon || 0),
+        0,
+      );
+      const avgDens = totalArea > 0 ? (totalC / totalArea).toFixed(1) : "–";
+      rpNdviExtra.textContent = `${avgDens} tC/ha rata-rata`;
+    }
+    // Render the Literature-specific NDVI stats breakdown bar
+    _renderNdviBreakdownBar(classData, el("rp-ndvi-breakdown"));
+  }
+
+  // ── Donut chart: untuk Literature gunakan karbon (bukan area) ──
+  if (method === "lefebvre") {
     renderDonutChartByCarbon(classData);
   } else {
     renderDonutChart(classData);
@@ -430,13 +451,13 @@ function renderRightPanel(classData, agg, method) {
       LANDCOVER_CLASS_VALUES[code] ??
       IPCC_FOREST_TYPES[code] ??
       NDVI_CARBON_CLASSES[code];
-    // NDVI: gunakan d.color (warna per nama hutan dari _namaColor)
-    const color = (method === "ndvi" ? d.color : null) ?? cl?.color ?? "#52b788";
+    // Literature: gunakan d.color (warna per nama hutan dari _namaColor)
+    const color = (method === "lefebvre" ? d.color : null) ?? cl?.color ?? "#52b788";
     const sharePct = totalC > 0 ? Math.round((d.carbon / totalC) * 100) : 0;
     const barPct =
       maxCarbon > 0 ? ((d.carbon / maxCarbon) * 100).toFixed(1) : 0;
     const name =
-      method === "ndvi"
+      method === "lefebvre"
         ? d.name
         : (typeof _lang !== "undefined" && _lang === "id"
           ? cl?.nameId || d.name
@@ -450,8 +471,8 @@ function renderRightPanel(classData, agg, method) {
     const agbHa = cl?.agb ?? 0;
     const bgbHa = cl?.bgb ?? 0;
     let refVals = "";
-    if (method === "ndvi") {
-      // NDVI per-nama: tampilkan densitas karbon per ha
+    if (method === "lefebvre") {
+      // Literature per-nama: tampilkan densitas karbon per ha
       const dens = d.areaHa > 0 ? (d.carbon / d.areaHa).toFixed(2) : "0";
       refVals = `<div class="rtc-ref">
         <span class="rtc-dens-pill" style="background:${color}22;border:1px solid ${color}55;color:${color}">
@@ -469,9 +490,9 @@ function renderRightPanel(classData, agg, method) {
       ? `<span class="rtc-badge ${badge.cls}">${badge.lbl}</span>`
       : `<span class="rtc-badge pct">${sharePct}%</span>`;
 
-    // Untuk NDVI, tampilkan 3 metrics (luas, karbon total, persen karbon)
+    // Untuk Literature, tampilkan 3 metrics (luas, karbon total, persen karbon)
     let metricsHtml = "";
-    if (method === "ndvi") {
+    if (method === "lefebvre") {
       metricsHtml = `
         <div class="rtc-metrics">
           <div class="rtc-metric">

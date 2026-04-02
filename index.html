@@ -199,11 +199,11 @@
                 <div class="mc-desc">National Forest Inventory</div>
               </div>
             </div>
-            <div class="method-chip" onclick="selectMethod('ndvi')">
+            <div class="method-chip" onclick="selectMethod('lefebvre')">
               <div class="mc-dot" style="background: #e07a5f"></div>
               <div class="mc-info">
-                <div class="mc-name">NDVI</div>
-                <div class="mc-desc">Perhitungan Citra NDVI</div>
+                <div class="mc-name">Literature</div>
+                <div class="mc-desc">Mangrove-specific model</div>
               </div>
             </div>
           </div>
@@ -243,19 +243,53 @@
 
 
 
-        <!-- SECTION: NDVI — Pilih Tahun (ndvi only) -->
-        <div class="sidebar-section ndvi-section" id="sec-ndvi-input" style="display: none;">
-          <div class="section-label">Database Citra NDVI</div>
-          <div class="klhk-years-lbl">Pilih Tahun Data NDVI</div>
+        <!-- SECTION: Literature — Info Sumber Data (lefebvre only) -->
+        <div class="sidebar-section literature-section" id="sec-lit-formula">
+          <div class="section-label">Sumber Data Literature</div>
+          <div class="lit-formula-card">
+            <div class="lfc-body">
+              <div class="lfc-eq" style="font-size: 13px">
+                Stok Karbon Landsat 8
+              </div>
+              <div class="lfc-sub">
+                Pre-computed carbon stock · tC/ha per pixel
+              </div>
+              <div class="lfc-r2">Resolusi 30m · UTM 48S · 2015–2025</div>
+            </div>
+          </div>
+          <div class="ipcc-auto-note">
+            Nilai stok karbon sudah dihitung sebelumnya dari citra Landsat 8 per
+            tahun
+          </div>
+        </div>
+
+        <!-- SECTION: Literature — Pilih Tahun (lefebvre only) -->
+        <div class="sidebar-section literature-section" id="sec-lit-input">
+          <div class="section-label">Input Data Literature</div>
+
+          <!-- Stock Carbon Year Selector -->
+          <div class="klhk-years-lbl">Pilih Tahun Data Stok Karbon</div>
           <div class="year-btn-grid" id="ndvi-year-grid">
-            <!-- Populated by JS: 2015–2024 -->
+            <!-- Populated by JS: 2015–2025 -->
           </div>
-          <div class="klhk-status-row" id="ndvi-status-row" style="display: none">
+          <div
+            class="klhk-status-row"
+            id="ndvi-status-row"
+            style="display: none"
+          >
             <span class="klhk-status-icon" id="ndvi-status-icon">⟳</span>
-            <span class="klhk-status-text" id="ndvi-status-text">Memuat...</span>
+            <span class="klhk-status-text" id="ndvi-status-text"
+              >Memuat...</span
+            >
           </div>
-          <div class="klhk-shp-row" id="ndvi-shp-row" style="display: none">
-            <span class="klhk-shp-badge">Batas: <span id="ndvi-shp-name">hutan.shp</span> (otomatis)</span>
+          <div id="ndvi-raster-info" style="display: none"></div>
+          <div class="gcc-note" style="margin-top: 8px">
+            📁 Data: <code>public/Karbon_Literature/karbon_lit_YYYY.tif</code
+            ><br />
+            Landsat 8 · 30m · 2015–2025<br />
+            <span style="opacity: 0.75"
+              >Batas area dari <code>hutan.shp</code> (otomatis)</span
+            >
           </div>
         </div>
 
@@ -347,13 +381,37 @@
                   <span class="rp-extra-lbl">CO₂ Equivalen</span>
                   <span class="rp-extra-val" id="rp-total-co2">–</span>
                 </div>
-                <!-- placeholder elements to keep JS app.js compatibility if referenced -->
-                <div id="rp-ndvi-section" style="display: none"></div>
-                <div id="rp-ndvi-stat" style="display: none"></div>
-                <div id="rp-ndvi-density-stat" style="display: none"></div>
-                <div id="rp-ndvi-val" style="display: none"></div>
-                <div id="rp-ndvi-extra" style="display: none"></div>
-                <div id="rp-ndvi-breakdown" style="display: none"></div>
+                <!-- NDVI stats — Literature only -->
+                <div
+                  class="rp-extra-row"
+                  id="rp-ndvi-stat"
+                  style="display: none"
+                >
+                  <span class="rp-extra-lbl">Rerata NDVI</span>
+                  <span class="rp-extra-val" id="rp-ndvi-val">–</span>
+                </div>
+                <div
+                  class="rp-extra-row"
+                  id="rp-ndvi-density-stat"
+                  style="display: none"
+                >
+                  <span class="rp-extra-lbl">Densitas Rata-rata</span>
+                  <span
+                    class="rp-extra-val"
+                    id="rp-ndvi-extra"
+                    style="color: var(--accent-light)"
+                    >–</span
+                  >
+                </div>
+              </div>
+
+              <!-- Literature source info (hidden, kept for JS compat) -->
+              <div id="rp-ndvi-section" style="display: none"></div>
+              <div id="rp-ndvi-stat" style="display: none"></div>
+              <div id="rp-ndvi-density-stat" style="display: none"></div>
+              <div id="rp-ndvi-val" style="display: none"></div>
+              <div id="rp-ndvi-extra" style="display: none"></div>
+              <div id="rp-ndvi-breakdown" style="display: none"></div>
 
               <!-- Donut Chart -->
               <div class="rp-donut-section">
