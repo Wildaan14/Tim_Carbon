@@ -130,7 +130,7 @@ function setCoordSys2(sys) {
 
 // ── STATE ────────────────────────────────────────────────────
 const state = {
-  method: "ipcc", // 'ipcc' | 'nfi' | 'lefebvre'
+  method: "ipcc", // 'ipcc' | 'nfi' | 'ndvi'
   year: "2024",
   drawnPolygons: [], // [{ points, area, layerId }]
   uploadedFiles: [],
@@ -306,10 +306,10 @@ function selectMethod(m) {
   state.method = m;
   document.body.dataset.method = m;
   document.querySelectorAll(".method-chip").forEach((el, i) => {
-    const methods = ["ipcc", "nfi", "lefebvre"];
+    const methods = ["ipcc", "nfi", "ndvi"];
     el.classList.toggle("active", methods[i] === m);
   });
-  const labels = { ipcc: "IPCC 2019", nfi: "KLHK", lefebvre: "Literature" };
+  const labels = { ipcc: "IPCC 2019", nfi: "KLHK", ndvi: "NDVI" };
   tx("st-method", labels[m] || "IPCC 2019");
   const badge = $("res-method-badge");
   if (badge) badge.textContent = labels[m] || "IPCC 2019";
@@ -319,12 +319,9 @@ function selectMethod(m) {
       loadNfiShp();
       loadIpccDem();
     } else if (m === "nfi") loadNfiShp();
-    else if (m === "lefebvre") {
+    else if (m === "ndvi") {
       loadNfiShp();
-      // Auto-load Stock Carbon 2016 saat pertama kali pilih Literature
-      setTimeout(() => {
-        if (!state.litPrecomputed) setLitYear(2016);
-      }, 300);
+      // NDVI: klik tahun manual di grid, tidak ada auto-load
     }
   }
   toggleCalcBtn();
@@ -346,7 +343,7 @@ function setMapLayer(type) {
   if (state.carbonLayer) state.carbonLayer.setOpacity(carbonOp);
 
   // SHP layer: tampil di namaHutan; Literature juga tampil di carbon
-  const isLitActive = state.method === "lefebvre";
+  const isLitActive = state.method === "ndvi";
   if (state.nfiShpLayer) {
     state.nfiShpLayer.eachLayer((l) => {
       const showShp =
@@ -1478,8 +1475,8 @@ async function loadNfiShp() {
       </div>`;
     }
 
-    // Literature: setelah SHP dimuat, zoom dan hitung/render choropleth
-    if (state.method === "lefebvre" && state.mapInstance) {
+    // NDVI: setelah SHP dimuat, zoom ke batas hutan
+    if (state.method === "ndvi" && state.mapInstance) {
       const allLngs = rings.flat().map(([lng]) => lng);
       const allLats = rings.flat().map(([, lat]) => lat);
       state.mapInstance.fitBounds(
@@ -1489,14 +1486,6 @@ async function loadNfiShp() {
         ],
         { padding: [40, 40] },
       );
-      if (state.litPrecomputed) {
-        // JSON sudah ada (setLitYear selesai sebelum SHP) → hitung sekarang
-        await calculate();
-      } else if (state._litByNama?.length) {
-        // Sudah ada hasil lama → render ulang choropleth dengan SHP baru
-        renderLitChoropleth(state._litByNama);
-        setMapLayer("namaHutan");
-      }
     }
   } catch (err) {
     console.error("Auto-load hutan SHP failed:", err.message, err);
@@ -1827,176 +1816,29 @@ function _updateShpCarbonGradient() {
   if (state.activeMapLayer === "carbon") updateMapLegend("carbon");
 }
 
-// ── LITERATURE: Choropleth SHP berdasarkan densitas karbon ────
-// Warnai setiap polygon hutan dengan gradien hijau muda→tua
-// sesuai densitas karbon (tC/ha) dari JSON pre-computed.
-function renderLitChoropleth(byNamaArr) {
-  if (!state.nfiShpLayer || !byNamaArr?.length) return;
-
-  // Bangun map: nama → densitas (tC/ha)
-  const densityMap = {};
-  byNamaArr.forEach((item) => {
-    if (item.areaHa > 0) densityMap[item.nama] = item.carbon / item.areaHa;
-  });
-
-  const densities = Object.values(densityMap).filter((d) => d > 0);
-  if (!densities.length) return;
-
-  const minD = Math.min(...densities);
-  const range = Math.max(...densities) - minD || 1;
-
-  // Gradient hijau muda (#c7e8c2) → hijau tua (#1a6b2e)
-  function carbonColor(density) {
-    const t = Math.max(0, Math.min(1, (density - minD) / range));
-    const r = Math.round(199 - t * 173); // 199 → 26
-    const g = Math.round(232 - t * 125); // 232 → 107
-    const b = Math.round(194 - t * 148); // 194 → 46
-    return `rgb(${r},${g},${b})`;
-  }
-
-  state.nfiShpLayer.eachLayer((l) => {
-    const nama = l._shpNama;
-    l._litColor =
-      densityMap[nama] !== undefined
-        ? carbonColor(densityMap[nama])
-        : "#cccccc"; // abu — tidak ada data
-  });
-}
-
-// ── LITERATURE: Load Stock Carbon Landsat 8 per tahun ────────
-// Strategi: coba JSON pre-computed dulu (< 5 KB, instan).
-// Jika tidak ada, tampilkan instruksi bahwa data tidak tersedia.
-async function setLitYear(year) {
-  state.ndviYear = String(year);
+// ── NDVI: Set Year and Status ────────
+function setNdviYear(year) {
   state.year = String(year);
-
   document.querySelectorAll(".ndvi-yr-btn").forEach((btn) => {
-    btn.classList.toggle("active", btn.dataset.year === state.ndviYear);
-    btn.classList.remove("loading");
+    btn.classList.toggle("active", btn.dataset.year === String(year));
   });
-  const activeBtn = Array.from(document.querySelectorAll(".ndvi-yr-btn")).find(
-    (b) => b.dataset.year === state.ndviYear,
-  );
-  if (activeBtn) activeBtn.classList.add("loading");
 
-  showNdviStatus("loading", `Memuat data tahun ${year}...`);
-  // Hapus overlay lama jika ada
-  if (state.carbonStockLayer && state.mapInstance) {
-    state.mapInstance.removeLayer(state.carbonStockLayer);
-    state.carbonStockLayer = null;
-  }
-  $("ndvi-raster-info").style.display = "none";
-
-  showLoader(`Memuat Stok Karbon ${year}...`);
-
-  const jsonUrl = `/Karbon_Literature/karbon_lit_${year}.json`;
-
-  try {
-    // ── Coba JSON pre-computed dulu (< 5 KB, instan) ──────────
-    let hasJson = false;
-    try {
-      const resp = await fetch(jsonUrl);
-      if (resp.ok) {
-        state.litPrecomputed = await resp.json();
-        hasJson = true;
-      }
-    } catch (_) {
-      /* JSON belum ada, akan load TIF */
-    }
-
-    if (hasJson) {
-      showNdviStatus(
-        "ok",
-        `Stok Karbon ${year} ✓ · JSON pre-computed · Landsat 8 30m`,
-      );
-      const infoEl = $("ndvi-raster-info");
-      if (infoEl) {
-        infoEl.innerHTML = `<span class="crs-badge">Data pre-computed · Landsat 8 · 30m · UTM 48S</span>`;
-        infoEl.style.display = "block";
-      }
-      if (activeBtn) activeBtn.classList.remove("loading");
-      toggleCalcBtn();
-
-      // Fit bounds ke SHP hutan
-      if (state.mapInstance && state.nfiShpPolygon?.length) {
-        const allLngs = state.nfiShpPolygon.flat().map(([lng]) => lng);
-        const allLats = state.nfiShpPolygon.flat().map(([, lat]) => lat);
-        state.mapInstance.fitBounds(
-          [
-            [Math.min(...allLats), Math.min(...allLngs)],
-            [Math.max(...allLats), Math.max(...allLngs)],
-          ],
-          { padding: [40, 40] },
-        );
-        const ltg = $("layer-toggle-group");
-        if (ltg) ltg.style.display = "flex";
-      }
-
-      // Auto-hitung instan dari JSON (jika SHP sudah tersedia)
-      if (state.nfiShpFeatures?.length) {
-        await calculate();
-        // Choropleth sudah dirender di dalam calculate() — zoom peta
-        if (state.mapInstance && state.nfiShpPolygon?.length) {
-          const allLngs = state.nfiShpPolygon.flat().map(([lng]) => lng);
-          const allLats = state.nfiShpPolygon.flat().map(([, lat]) => lat);
-          state.mapInstance.fitBounds(
-            [
-              [Math.min(...allLats), Math.min(...allLngs)],
-              [Math.max(...allLats), Math.max(...allLngs)],
-            ],
-            { padding: [40, 40] },
-          );
-        }
-      }
-      // SHP belum selesai load → callback di loadNfiShp akan trigger calculate()
-    } else {
-      // JSON belum di-generate — jangan load TIF (17 MB, bekukan browser)
-      if (activeBtn) {
-        activeBtn.classList.remove("loading");
-        activeBtn.classList.remove("active");
-      }
-      showNdviStatus(
-        "error",
-        `⚠ Data JSON belum tersedia untuk tahun ${year}.`,
-      );
-      toggleCalcBtn();
-    }
-  } catch (err) {
-    if (activeBtn) {
-      activeBtn.classList.remove("loading");
-      activeBtn.classList.remove("active");
-    }
-    const is404 =
-      err.message.includes("HTTP 404") ||
-      err.message.includes("Failed to fetch");
-    if (is404) {
-      if (activeBtn) activeBtn.classList.add("yr-na");
-      showNdviStatus(
-        "error",
-        `Data karbon ${year} tidak tersedia.`,
-      );
-    } else {
-      showNdviStatus("error", err.message);
-    }
-    state.carbonStockRaster = null;
-    state.litPrecomputed = null;
-    toggleCalcBtn();
-  } finally {
-    hideLoader();
-  }
-}
-
-function showNdviStatus(type, msg) {
-  const row = $("ndvi-status-row");
+  const statusRow = $("ndvi-status-row");
+  if (statusRow) statusRow.style.display = "flex";
+  
   const icon = $("ndvi-status-icon");
   const text = $("ndvi-status-text");
-  if (!row) return;
-  row.style.display = "flex";
+  
   if (icon) {
-    icon.className = `klhk-status-icon ${type}`;
-    icon.textContent = type === "loading" ? "⟳" : type === "ok" ? "✓" : "✗";
+    icon.textContent = "✓";
+    icon.className = "klhk-status-icon ok";
   }
-  if (text) text.textContent = msg;
+  if (text) text.textContent = `Tahun ${year} siap dihitung.`;
+  
+  const shpRow = $("ndvi-shp-row");
+  if (shpRow) shpRow.style.display = "flex";
+
+  toggleCalcBtn();
 }
 
 async function loadIpccDem() {
@@ -2041,7 +1883,7 @@ async function loadIpccDem() {
 async function calculate() {
   const hasDrawn = state.drawnPolygons.length > 0;
   const isIpcc = state.method === "ipcc";
-  const isLit = state.method === "lefebvre";
+  const isLit = state.method === "ndvi";
 
   // ── Validation ────────────────────────────────────────────
   if (isIpcc) {
@@ -2143,75 +1985,60 @@ async function calculate() {
           totalAreaHa += areaHa;
         }
       } else if (isLit) {
-        // ── Literature: Stock Carbon Landsat 8 (JSON pre-computed) ─
-        if (!state.litPrecomputed) {
-          showError(
-            "⚠ Pilih tahun data Stok Karbon terlebih dahulu (2015–2025).",
-          );
+        // ── NDVI: Stock Carbon Landsat 8 ─
+        if (!state.year) {
+          showError("⚠ Pilih tahun data NDVI terlebih dahulu.");
           restoreBtn();
           hideLoader();
           return;
         }
         if (!state.nfiShpFeatures?.length) {
-          showError(
-            "⚠ Data hutan.shp belum tersedia. Pastikan file SHP sudah ter-load.",
-          );
+          showError("⚠ Data batas area (hutan.shp) belum dimuat.");
           restoreBtn();
           hideLoader();
           return;
         }
 
-        const pd = state.litPrecomputed;
-        const litTotalCarbon = pd.totalCarbon;
-        const litAreaHa = pd.totalAreaHa;
+        const url = `public/NDVI TERBARU 2015-2024/NDVI_${state.year}.tif`;
+        state.raster = await loadGeoTiffFromUrl(url, `NDVI_${state.year}.tif`);
+        
+        let overlay;
+        if (state.mapInstance) overlay = await addRasterOverlayToMap(state.raster, state.mapInstance);
+        if (state.coverLayer && state.mapInstance) state.mapInstance.removeLayer(state.coverLayer);
+        state.coverLayer = overlay;
 
-        // Bangun byNama dengan warna palette dari nfiShpFeatures
-        const byNama = Object.values(pd.byNama).map((v) => {
-          const feat = state.nfiShpFeatures.find(
-            (f) => (f.properties?.namobj || f.properties?.NAMOBJ) === v.namobj,
-          );
+        // Hitung stok karbon berdasarkan rumus NDVI
+        const { total, byNama } = await calculateNDVIStockByFeatures(state.raster, state.nfiShpFeatures);
+
+        totalAreaHa = total.areaHa;
+        agg.total = total.carbon;
+        agg.aboveground = total.carbon;
+
+        state.forestCarbonData = Object.keys(byNama).map(key => {
+          const d = byNama[key];
           return {
-            nama: v.namobj,
-            color: feat?._namaColor || "#4caf50",
-            carbon: v.carbon,
-            areaHa: v.areaHa,
+            nama: d.namobj,
+            kelas: d.kelas,
+            totalArea: d.areaHa,
+            totalCarbon: d.carbon
           };
-        });
+        }).sort((a, b) => b.totalCarbon - a.totalCarbon);
 
-        totalAreaHa = litAreaHa;
-        agg.total = litTotalCarbon;
-        agg.aboveground = litTotalCarbon;
+        classData["NDVI"] = {
+          name: "Area Rekaman NDVI",
+          nameId: "Area Rekaman NDVI",
+          areaHa: total.areaHa,
+          carbon: total.carbon,
+          co2: total.carbon * CO2_FACTOR,
+          color: "#e07a5f",
+          agb_total: total.carbon,
+          bgb_total: 0,
+          biomass_total: 0
+        };
 
-        // Bangun classData per nama hutan
-        for (const item of byNama) {
-          if (item.areaHa <= 0) continue;
-          classData[item.nama] = {
-            name: item.nama,
-            nameId: item.nama,
-            areaHa: item.areaHa,
-            agb_total: item.carbon,
-            bgb_total: 0,
-            biomass_total: 0,
-            carbon: item.carbon,
-            co2: item.carbon * CO2_FACTOR,
-            color: item.color,
-          };
+        if (state.mapInstance) {
+          state.mapInstance.fitBounds(getRasterBounds(state.raster), { padding: [30, 30] });
         }
-        state._litByNama = byNama;
-
-        // Populate forestCarbonData untuk bottom bar (format sama dengan KLHK)
-        state.forestCarbonData = Object.values(pd.byNama)
-          .filter((v) => v.carbon > 0)
-          .map((v) => ({
-            nama: v.namobj,
-            kelas: v.kelas,
-            totalCarbon: v.carbon,
-            totalArea: v.areaHa,
-          }))
-          .sort((a, b) => b.totalCarbon - a.totalCarbon);
-
-        // Render choropleth SHP berdasarkan densitas karbon (instan)
-        renderLitChoropleth(byNama);
         if (state.mapInstance && state.nfiShpLayer) setMapLayer("namaHutan");
       } else {
         // ── KLHK: MapBiomas pre-loaded raster ─────────────────
@@ -2495,7 +2322,7 @@ async function calculate() {
       const methLabels = {
         ipcc: "IPCC 2019",
         nfi: "KLHK",
-        lefebvre: "Literature",
+        ndvi: "NDVI",
       };
       updateStatsSummary(
         totalAreaHa,
@@ -2752,9 +2579,9 @@ function toggleCalcBtn() {
   if (!btn) return;
   if (state.method === "ipcc") {
     btn.disabled = !state.demRaster;
-  } else if (state.method === "lefebvre") {
-    // Literature: butuh NDVI raster sudah dimuat (year dipilih)
-    btn.disabled = !state.ndviRaster;
+  } else if (state.method === "ndvi") {
+    // NDVI: butuh NDVI raster dimuat
+    btn.disabled = !state.year;
   } else {
     // KLHK: need a raster loaded (year selected)
     btn.disabled = !state.raster;
@@ -3012,12 +2839,12 @@ window.addEventListener("DOMContentLoaded", () => {
   // Build Literature NDVI year grid (2015–2024)
   const ndviGrid = $("ndvi-year-grid");
   if (ndviGrid) {
-    for (let y = 2015; y <= 2025; y++) {
+    for (let y = 2015; y <= 2024; y++) {
       const btn = document.createElement("button");
       btn.className = "klhk-yr-btn ndvi-yr-btn";
       btn.dataset.year = String(y);
-      btn.innerHTML = `${y}<span style="display:block;font-size:8px;opacity:0.65;margin-top:1px">L8</span>`;
-      btn.onclick = () => setLitYear(y);
+      btn.innerHTML = `${y}`;
+      btn.onclick = () => setNdviYear(y);
       ndviGrid.appendChild(btn);
     }
   }
