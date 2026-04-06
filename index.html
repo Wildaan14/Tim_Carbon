@@ -203,7 +203,7 @@
               <div class="mc-dot" style="background: #e07a5f"></div>
               <div class="mc-info">
                 <div class="mc-name">Literature</div>
-                <div class="mc-desc">Mangrove-specific model</div>
+                <div class="mc-desc">Landsat 8 - Cached</div>
               </div>
             </div>
           </div>
@@ -243,35 +243,14 @@
 
 
 
-        <!-- SECTION: Literature — Info Sumber Data (lefebvre only) -->
-        <div class="sidebar-section literature-section" id="sec-lit-formula">
-          <div class="section-label">Sumber Data Literature</div>
-          <div class="lit-formula-card">
-            <div class="lfc-body">
-              <div class="lfc-eq" style="font-size: 13px">
-                Stok Karbon Landsat 8
-              </div>
-              <div class="lfc-sub">
-                Pre-computed carbon stock · tC/ha per pixel
-              </div>
-              <div class="lfc-r2">Resolusi 30m · UTM 48S · 2015–2025</div>
-            </div>
-          </div>
-          <div class="ipcc-auto-note">
-            Nilai stok karbon sudah dihitung sebelumnya dari citra Landsat 8 per
-            tahun
-          </div>
-        </div>
 
-        <!-- SECTION: Literature — Pilih Tahun (lefebvre only) -->
+
+        <!-- SECTION: NDVI — Pilih Tahun (lefebvre only) -->
         <div class="sidebar-section literature-section" id="sec-lit-input">
-          <div class="section-label">Input Data Literature</div>
-
-          <!-- Stock Carbon Year Selector -->
-          <div class="klhk-years-lbl">Pilih Tahun Data Stok Karbon</div>
           <div class="year-btn-grid" id="ndvi-year-grid">
             <!-- Populated by JS: 2015–2025 -->
           </div>
+
           <div
             class="klhk-status-row"
             id="ndvi-status-row"
@@ -283,14 +262,7 @@
             >
           </div>
           <div id="ndvi-raster-info" style="display: none"></div>
-          <div class="gcc-note" style="margin-top: 8px">
-            📁 Data: <code>public/Karbon_Literature/karbon_lit_YYYY.tif</code
-            ><br />
-            Landsat 8 · 30m · 2015–2025<br />
-            <span style="opacity: 0.75"
-              >Batas area dari <code>hutan.shp</code> (otomatis)</span
-            >
-          </div>
+
         </div>
 
         <!-- SECTION: KLHK MapBiomas Database (KLHK only) -->

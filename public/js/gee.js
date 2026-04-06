@@ -17,7 +17,7 @@
 const GEE_CLIENT_ID = window.GEE_CLIENT_ID ?? '';
 
 const GEE_SCOPE = 'https://www.googleapis.com/auth/earthengine.readonly';
-const GEE_BASE  = 'https://earthengine.googleapis.com/v1';
+const GEE_BASE = 'https://earthengine.googleapis.com/v1';
 
 let _geeToken = null;
 
@@ -62,9 +62,9 @@ function _buildS2NdviExpr(bbox, dateStart, dateEnd, cloudMax) {
     functionInvocationValue: {
       functionName: 'GeometryConstructors.BBox',
       arguments: {
-        west:  { constantValue: west  },
+        west: { constantValue: west },
         south: { constantValue: south },
-        east:  { constantValue: east  },
+        east: { constantValue: east },
         north: { constantValue: north },
       },
     },
@@ -83,7 +83,7 @@ function _buildS2NdviExpr(bbox, dateStart, dateEnd, cloudMax) {
       arguments: {
         collection: s2Col,
         start: { constantValue: dateStart },
-        end:   { constantValue: dateEnd   },
+        end: { constantValue: dateEnd },
       },
     },
   };
@@ -97,7 +97,7 @@ function _buildS2NdviExpr(bbox, dateStart, dateEnd, cloudMax) {
           functionInvocationValue: {
             functionName: 'Filter.lt',
             arguments: {
-              leftField:  { constantValue: 'CLOUDY_PIXEL_PERCENTAGE' },
+              leftField: { constantValue: 'CLOUDY_PIXEL_PERCENTAGE' },
               rightValue: { constantValue: cloudMax },
             },
           },
@@ -148,10 +148,10 @@ function _buildS2NdviExpr(bbox, dateStart, dateEnd, cloudMax) {
 // options: { projectId, dateStart, dateEnd, cloudMax, resolution }
 async function fetchNdviFromGee(bbox, options = {}) {
   const {
-    projectId  = 'earthengine-legacy',
-    dateStart  = `${new Date().getFullYear() - 1}-01-01`,
-    dateEnd    = `${new Date().getFullYear() - 1}-12-31`,
-    cloudMax   = 30,
+    projectId = 'earthengine-legacy',
+    dateStart = `${new Date().getFullYear() - 1}-01-01`,
+    dateEnd = `${new Date().getFullYear() - 1}-12-31`,
+    cloudMax = 30,
     resolution = 0.0002,   // ~22m at equator
   } = options;
 
@@ -162,10 +162,10 @@ async function fetchNdviFromGee(bbox, options = {}) {
   const [minLng, minLat, maxLng, maxLat] = bbox;
   const spanLng = Math.abs(maxLng - minLng);
   const spanLat = Math.abs(maxLat - minLat);
-  const width   = Math.max(64, Math.min(512, Math.ceil(spanLng / resolution)));
-  const height  = Math.max(64, Math.min(512, Math.ceil(spanLat / resolution)));
-  const scaleX  = spanLng / width;
-  const scaleY  = -(spanLat / height);
+  const width = Math.max(64, Math.min(512, Math.ceil(spanLng / resolution)));
+  const height = Math.max(64, Math.min(512, Math.ceil(spanLat / resolution)));
+  const scaleX = spanLng / width;
+  const scaleY = -(spanLat / height);
 
   const body = {
     expression: _buildS2NdviExpr(bbox, dateStart, dateEnd, cloudMax),
@@ -213,7 +213,7 @@ async function fetchNdviFromGee(bbox, options = {}) {
 }
 
 // Expose to global scope
-window.geeSetToken      = geeSetToken;
+window.geeSetToken = geeSetToken;
 window.geeIsAuthenticated = geeIsAuthenticated;
-window.geeSignIn        = geeSignIn;
+window.geeSignIn = geeSignIn;
 window.fetchNdviFromGee = fetchNdviFromGee;

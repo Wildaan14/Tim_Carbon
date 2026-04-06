@@ -1034,14 +1034,16 @@ async function loadNdviFromLocalAsset(url, fileName) {
 //        NDVI ≥ 0.50 → lit_medium (Stok Karbon Sedang)
 //        NDVI < 0.50 → lit_low    (Stok Karbon Rendah)
 //
-// Returns { areaHa, totalCarbon, meanNdvi, classCounts, classCarbons }
+// Returns { areaHa, totalCarbon, meanNdvi, classCounts, classCarbons, byNama }
 //   areaHa       : total luas area valid [ha]
-//   totalCarbon  : total stok karbon = Σ (carbonDensity × pixelAreaHa) [tC]
+//   totalCarbon  : total stok karbon [tC]
 //   meanNdvi     : rata-rata NDVI semua pixel valid
 //   classCounts  : { lit_high, lit_medium, lit_low } → luas per kelas [ha]
 //   classCarbons : { lit_high, lit_medium, lit_low } → karbon per kelas [tC]
+//   byNama       : { nama: { carbon, areaHa, color } } → statistik per fitur hutan
 // polygons = null (scan all) | [[lng,lat],...] single ring | [[[lng,lat],...], ...] multi-ring
-async function processNdviRaster(ndvi, polygons) {
+// nfiFeatures = array fitur dari hutan.shp untuk zonal stats
+async function processNdviRaster(ndvi, polygons, nfiFeatures) {
   const [minX, minY, maxX, maxY] = ndvi.bbox;
   const { width, height, data, nodata } = ndvi;
   const resX = (maxX - minX) / width;
@@ -1049,8 +1051,46 @@ async function processNdviRaster(ndvi, polygons) {
   const isUtm = ndvi.crs?.type === "utm";
   const utmPixelHa = isUtm ? Math.abs(resX * resY) / 10000 : 0;
 
-  // Normalize polygons → array of rings in raster coordinate space (bbox pre-filter)
-  let ringBboxes = null;
+  // ── Prepare Zonal Stats (byNama) ────────────────────────────
+  const featureData = [];
+  if (nfiFeatures && nfiFeatures.length) {
+    for (const feat of nfiFeatures) {
+      const nama = feat.properties?.namobj || feat.properties?.NAMOBJ || "–";
+      const color = feat._namaColor || "#4caf50";
+      const geom = feat.geometry;
+      if (!geom) continue;
+
+      let rawRings = [];
+      if (geom.type === "Polygon") rawRings = [geom.coordinates[0]];
+      else if (geom.type === "MultiPolygon")
+        rawRings = geom.coordinates.map((p) => p[0]);
+      if (!rawRings.length) continue;
+
+      const rasterRings = rawRings.map((ring) => {
+        if (isUtm) {
+          const { zone } = ndvi.crs;
+          return ring.map(([lng, lat]) => {
+            const u = wgs84ToUtmPoint(lat, lng, zone);
+            return [u.easting, u.northing];
+          });
+        }
+        return ring;
+      });
+
+      const ringBboxes = rasterRings.map((ring) => {
+        let rx0 = Infinity, rx1 = -Infinity, ry0 = Infinity, ry1 = -Infinity;
+        for (const [x, y] of ring) {
+          if (x < rx0) rx0 = x; if (x > rx1) rx1 = x;
+          if (y < ry0) ry0 = y; if (y > ry1) ry1 = y;
+        }
+        return { ring, rx0, rx1, ry0, ry1 };
+      });
+      featureData.push({ nama, color, ringBboxes, carbon: 0, areaHa: 0 });
+    }
+  }
+
+  // ── Prepare Primary Polygons (User Drawn / Global Clip) ──────
+  let primaryBboxes = null;
   if (polygons) {
     const rawRings = Array.isArray(polygons[0][0]) ? polygons : [polygons];
     const converted = rawRings.map((ring) => {
@@ -1063,24 +1103,19 @@ async function processNdviRaster(ndvi, polygons) {
       }
       return ring;
     });
-    ringBboxes = converted.map((ring) => {
-      let rx0 = Infinity,
-        rx1 = -Infinity,
-        ry0 = Infinity,
-        ry1 = -Infinity;
+    primaryBboxes = converted.map((ring) => {
+      let rx0 = Infinity, rx1 = -Infinity, ry0 = Infinity, ry1 = -Infinity;
       for (const [x, y] of ring) {
-        if (x < rx0) rx0 = x;
-        if (x > rx1) rx1 = x;
-        if (y < ry0) ry0 = y;
-        if (y > ry1) ry1 = y;
+        if (x < rx0) rx0 = x; if (x > rx1) rx1 = x;
+        if (y < ry0) ry0 = y; if (y > ry1) ry1 = y;
       }
       return { ring, rx0, rx1, ry0, ry1 };
     });
   }
 
-  function insideAny(cx, cy) {
-    if (!ringBboxes) return true;
-    for (const rb of ringBboxes) {
+  function insidePrimary(cx, cy) {
+    if (!primaryBboxes) return true;
+    for (const rb of primaryBboxes) {
       if (cx >= rb.rx0 && cx <= rb.rx1 && cy >= rb.ry0 && cy <= rb.ry1) {
         if (pointInPolygon(cx, cy, rb.ring)) return true;
       }
@@ -1088,10 +1123,7 @@ async function processNdviRaster(ndvi, polygons) {
     return false;
   }
 
-  let totalAreaHa = 0,
-    totalCarbon = 0,
-    sumNdvi = 0,
-    pixelCount = 0;
+  let totalAreaHa = 0, totalCarbon = 0, sumNdvi = 0, pixelCount = 0;
   const classCounts = { lit_high: 0, lit_medium: 0, lit_low: 0 };
   const classCarbons = { lit_high: 0, lit_medium: 0, lit_low: 0 };
 
@@ -1110,25 +1142,23 @@ async function processNdviRaster(ndvi, polygons) {
 
     for (let i = 0; i < width; i++) {
       const cx = minX + (i + 0.5) * resX;
-      if (!insideAny(cx, cy)) continue;
+      // Filter by primary polygons (drawn/global)
+      if (!insidePrimary(cx, cy)) continue;
 
       let v = data[j * width + i];
-      if (
-        v === undefined ||
-        v === null ||
-        Number.isNaN(v) ||
-        Math.abs(v - nodata) < 0.001
-      )
-        continue;
+      if (v === undefined || v === null || Number.isNaN(v) || Math.abs(v - nodata) < 0.001) continue;
 
-      // Handle NDVI integer ×10000 (format int16 dari process_ndvi.py)
       if (Math.abs(v) > 1) v = v / 10000;
       if (v < -1 || v > 1) continue;
 
-      // Formula Lefebvre/Sentinel-2: y = -255.61x² + 494.84x - 154.45
       const carbonDensity = ndviToCarbon(v);
       const carbonPixel = carbonDensity * rowPxHa;
-      const key = v >= 0.65 ? "lit_high" : v >= 0.5 ? "lit_medium" : "lit_low";
+      
+      // Klasifikasi
+      let key = "lit_low";
+      if (v >= 0.65) key = "lit_high";
+      else if (v >= 0.50) key = "lit_medium";
+      else if (v < 0.2181767280121414) continue; // Di bawah ambang batas = abaikan luas & karbon
 
       totalAreaHa += rowPxHa;
       totalCarbon += carbonPixel;
@@ -1136,6 +1166,23 @@ async function processNdviRaster(ndvi, polygons) {
       pixelCount += 1;
       classCounts[key] += rowPxHa;
       classCarbons[key] += carbonPixel;
+
+      // Update Zonal Stats (per-feature)
+      if (featureData.length) {
+        for (const fd of featureData) {
+          let inFeat = false;
+          for (const rb of fd.ringBboxes) {
+            if (cx >= rb.rx0 && cx <= rb.rx1 && cy >= rb.ry0 && cy <= rb.ry1) {
+              if (pointInPolygon(cx, cy, rb.ring)) { inFeat = true; break; }
+            }
+          }
+          if (inFeat) {
+            fd.carbon += carbonPixel;
+            fd.areaHa += rowPxHa;
+            break; // assuming features don't overlap much
+          }
+        }
+      }
     }
   }
 
@@ -1145,6 +1192,14 @@ async function processNdviRaster(ndvi, polygons) {
     meanNdvi: pixelCount > 0 ? sumNdvi / pixelCount : 0,
     classCounts,
     classCarbons,
+    byNama: featureData
+      .filter((fd) => fd.areaHa > 0)
+      .map((fd) => ({
+        nama: fd.nama,
+        color: fd.color,
+        carbon: fd.carbon,
+        areaHa: fd.areaHa,
+      })),
   };
 }
 

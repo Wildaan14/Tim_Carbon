@@ -346,12 +346,12 @@ function renderRightPanel(classData, agg, method) {
       showNdvi: false,
     },
     lefebvre: {
-      title: "Analisis Stok Karbon per Nama Hutan",
-      donutLbl: "Distribusi Stok Karbon",
-      classLbl: "Per Nama Hutan",
-      source: "Landsat 8 · Pre-computed Stock Carbon (tC/ha)",
+      title: "Analisis Literature",
+      donutLbl: "Distribusi Stok Karbon per Hutan",
+      classLbl: "Statistik per Nama Hutan",
+      source: "Landsat 8 · Literature-based Carbon Calculation",
       showBiomass: false,
-      showNdvi: false,
+      showNdvi: true,
     },
   };
   const c = cfg[method] || cfg.ipcc;
@@ -387,7 +387,8 @@ function renderRightPanel(classData, agg, method) {
   // ── NDVI mean (Literature) ─────────────────────────────────
   if (c.showNdvi) {
     if (el("rp-ndvi-val")) {
-      const mean = window.state?._ndviMean ?? window.state?.ndviMean;
+      const summary = window.state?._ndviSummary;
+      const mean = summary ? summary.meanNdvi : (window.state?._ndviMean ?? window.state?.ndviMean);
       el("rp-ndvi-val").textContent =
         mean != null && !isNaN(mean) ? fmtDec(mean, 3) : "–";
     }

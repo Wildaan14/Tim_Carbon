@@ -1,12 +1,12 @@
 // ============================================================
-// app.js — CarbonGIS Main Logic v2
+// app.js â€” CarbonGIS Main Logic v2
 // ============================================================
 
-// ── COORDINATE SYSTEM UTILS ──────────────────────────────────
+// â”€â”€ COORDINATE SYSTEM UTILS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Supported: 'wgs84' | 'utm' | 'dms'
 let _coordSys = "wgs84";
 
-/** WGS84 decimal degrees → UTM easting/northing/zone */
+/** WGS84 decimal degrees â†’ UTM easting/northing/zone */
 function latLonToUtm(lat, lon) {
   const a = 6378137.0;
   const f = 1 / 298.257223563;
@@ -58,7 +58,7 @@ function latLonToUtm(lat, lon) {
   };
 }
 
-/** Decimal degrees → DMS string */
+/** Decimal degrees â†’ DMS string */
 function decToDms(deg, isLat) {
   const abs = Math.abs(deg);
   const d = Math.floor(abs);
@@ -66,7 +66,7 @@ function decToDms(deg, isLat) {
   const m = Math.floor(mf);
   const s = ((mf - m) * 60).toFixed(1);
   const dir = isLat ? (deg >= 0 ? "N" : "S") : deg >= 0 ? "E" : "W";
-  return `${d}°${m}'${s}"${dir}`;
+  return `${d}Â°${m}'${s}"${dir}`;
 }
 
 /** Format latlng according to current coord system */
@@ -79,21 +79,21 @@ function fmtCoord(lat, lon) {
     return `${decToDms(lat, true)}  ${decToDms(lon, false)}`;
   }
   // WGS84
-  return `${lat.toFixed(6)}°,  ${lon.toFixed(6)}°`;
+  return `${lat.toFixed(6)}Â°,  ${lon.toFixed(6)}Â°`;
 }
 
 /**
  * Format area (in hectares) according to current coord system:
- *  WGS84 / DMS → "X.XX ha"
- *  UTM          → "X,XXX m²"  (if < 100 ha) or "X.XX ha" with m² in parentheses
+ *  WGS84 / DMS â†’ "X.XX ha"
+ *  UTM          â†’ "X,XXX mÂ²"  (if < 100 ha) or "X.XX ha" with mÂ² in parentheses
  */
 function fmtArea(ha) {
   if (_coordSys === "utm") {
     const m2 = ha * 10000;
     if (m2 < 1000000) {
-      return `${m2.toLocaleString("id-ID", { maximumFractionDigits: 0 })} m²`;
+      return `${m2.toLocaleString("id-ID", { maximumFractionDigits: 0 })} mÂ²`;
     }
-    return `${ha.toFixed(2)} ha (${m2.toLocaleString("id-ID", { maximumFractionDigits: 0 })} m²)`;
+    return `${ha.toFixed(2)} ha (${m2.toLocaleString("id-ID", { maximumFractionDigits: 0 })} mÂ²)`;
   }
   // WGS84 / DMS
   return `${ha.toFixed(2)} ha`;
@@ -128,7 +128,7 @@ function setCoordSys2(sys) {
       sys === "utm" ? "UTM:" : sys === "dms" ? "DMS:" : "WGS84:";
 }
 
-// ── STATE ────────────────────────────────────────────────────
+// â”€â”€ STATE â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const state = {
   method: "ipcc", // 'ipcc' | 'nfi' | 'lefebvre'
   year: "2024",
@@ -193,7 +193,7 @@ const FOREST_NAME_PALETTE = [
   "#37474f",
 ];
 
-// ── DOM UTILS ────────────────────────────────────────────────
+// ————————————————————————————————————————————————————————————
 const $ = (id) => document.getElementById(id);
 const tx = (id, txt) => {
   const el = $(id);
@@ -204,7 +204,7 @@ const ih = (id, html) => {
   if (el) el.innerHTML = html;
 };
 
-// ── GLOBAL LOADER ────────────────────────────────────────────
+// ————————————————————————————————————————————————————————————
 function showLoader(text = "Memuat Peta...") {
   const loader = $("global-loader");
   const loaderText = $("loader-text");
@@ -228,7 +228,7 @@ function hideLoader() {
   }
 }
 
-// ── LANGUAGE ─────────────────────────────────────────────────
+// ————————————————————————————————————————————————————————————
 function handleSetLang(l) {
   _lang = l;
   setLang(l);
@@ -269,7 +269,7 @@ function applyLabels() {
   if (hint) hint.textContent = t("drawHint");
 }
 
-// ── TAB SWITCH ───────────────────────────────────────────────
+// ————————————————————————————————————————————————————————————
 function switchTab(tab) {
   state.currentTab = tab;
   document
@@ -301,7 +301,11 @@ function switchTab(tab) {
   }
 }
 
-// ── METODOLOGI ───────────────────────────────────────────────
+
+// ============================================================
+// METHOD & LAYER CONTROL
+// ============================================================
+
 function selectMethod(m) {
   state.method = m;
   document.body.dataset.method = m;
@@ -321,9 +325,9 @@ function selectMethod(m) {
     } else if (m === "nfi") loadNfiShp();
     else if (m === "lefebvre") {
       loadNfiShp();
-      // Auto-load Stock Carbon 2016 saat pertama kali pilih Literature
+      // Auto-load 2024 NDVI
       setTimeout(() => {
-        if (!state.litPrecomputed) setLitYear(2016);
+        if (!state.litPrecomputed) setLitYear(2024);
       }, 300);
     }
   }
@@ -334,69 +338,79 @@ function handleYearChange(y) {
   state.year = y;
 }
 
-// ── LAYER TOGGLE ──────────────────────────────────────────────
 function setMapLayer(type) {
   state.activeMapLayer = type;
   $("ltg-cover")?.classList.toggle("active", type === "cover");
   $("ltg-carbon")?.classList.toggle("active", type === "carbon");
   $("ltg-namaHutan")?.classList.toggle("active", type === "namaHutan");
+  
+  const isLitActive = state.method === "lefebvre";
+  
+  // Raster/Tile Layers (IPCC, KLHK)
   const coverOp = type === "cover" ? 0.78 : 0;
   const carbonOp = type === "carbon" ? 0.82 : 0;
-  if (state.coverLayer) state.coverLayer.setOpacity(coverOp);
-  if (state.carbonLayer) state.carbonLayer.setOpacity(carbonOp);
+  if (state.coverLayer && typeof state.coverLayer.setOpacity === 'function') state.coverLayer.setOpacity(coverOp);
+  if (state.carbonLayer && typeof state.carbonLayer.setOpacity === 'function') {
+     if (!state.ndviGeoLayer || state.carbonLayer !== state.ndviGeoLayer) {
+        state.carbonLayer.setOpacity(carbonOp);
+     }
+  }
 
-  // SHP layer: tampil di namaHutan; Literature juga tampil di carbon
-  const isLitActive = state.method === "lefebvre";
+  // Handle NDVI GeoJSON Layer styling specifically
+  if (isLitActive && state.ndviGeoLayer) {
+    state.ndviGeoLayer.setStyle(function(feature) {
+      if (type === 'namaHutan') return { opacity: 0, fillOpacity: 0, interactive: false };
+      
+      const cid = feature.properties.class_id;
+      let color = 'transparent';
+      
+      if (type === 'carbon') {
+        // Carbon density ramp (tC/ha) - Natural forest greens
+        if (cid === 2) color = '#c7e8c2'; // ~38 tC/ha
+        else if (cid === 3) color = '#74c476'; // ~108 tC/ha
+        else if (cid === 4) color = '#00441b'; // ~243 tC/ha
+      } else {
+        // Original NDVI ramp - Light to Dark Forest Green
+        if (cid === 2) color = '#c7e8c2'; 
+        else if (cid === 3) color = '#74c476'; 
+        else if (cid === 4) color = '#00441b'; 
+      }
+      
+      const op = (type === 'cover' || type === 'carbon') ? 0.85 : 0;
+      return { fillColor: color, fillOpacity: op, color: color, weight: 0.1, opacity: 0.4, interactive: op > 0 };
+    });
+    
+    if (type === 'cover' || type === 'carbon') {
+      if (!state.mapInstance.hasLayer(state.ndviGeoLayer)) state.ndviGeoLayer.addTo(state.mapInstance);
+    }
+  }
+
+  // SHP layer — for NDVI, ONLY show in "Nama Hutan" mode (Carbon now uses high-res pixels)
   if (state.nfiShpLayer) {
     state.nfiShpLayer.eachLayer((l) => {
-      const showShp =
-        type === "namaHutan" || (type === "carbon" && isLitActive);
-      if (showShp && l._namaColor) {
-        const isLitMode = isLitActive && l._litColor;
-        const fillColor = isLitMode ? l._litColor : l._namaColor;
-        l.setStyle(
-          isLitMode
-            ? {
-              fillColor,
-              fillOpacity: 0.75,
-              color: "#1a3a1a",
-              weight: 0.8,
-              opacity: 0.5,
-            }
-            : {
-              fillColor,
-              fillOpacity: 0.55,
-              color: fillColor,
-              weight: 1.5,
-              opacity: 1,
-            },
-        );
-        // Re-bind tooltip nama hutan jika belum ada
+      const showShp = type === "namaHutan";
+      if (showShp && (l._namaColor || l._litColor)) {
+        // Jika mode carbon & NDVI (lit) active, pakai litColor (gradient).
+        // Jika mode namaHutan, pakai namaColor (unique).
+        const useLitColor = isLitActive && type === "carbon" && l._litColor;
+        const fillColor = useLitColor ? l._litColor : l._namaColor;
+        l.setStyle(useLitColor ? {
+          fillColor, fillOpacity: 0.75, color: "#1a3a1a", weight: 0.8, opacity: 0.5
+        } : {
+          fillColor, fillOpacity: 0.55, color: fillColor, weight: 1.5, opacity: 1
+        });
+
         if (!l.getTooltip() && l._shpNama) {
-          l.bindTooltip(`<strong>${l._shpNama}</strong>`, {
-            sticky: true,
-            className: "shp-tooltip",
-          });
+          l.bindTooltip(`<strong>${l._shpNama}</strong>`, { sticky: true, className: "shp-tooltip" });
         }
       } else {
-        // cover / carbon non-Literature: sembunyikan layer SHP
-        l.setStyle({ fillOpacity: 0, opacity: 0, weight: 0 });
-        l.unbindTooltip();
+        l.setStyle({ fillOpacity: 0, opacity: 0, weight: 0, interactive: false });
+        if (l.getTooltip()) l.unbindTooltip();
       }
     });
   }
 
-  // Raster click handler: aktif di mode cover & carbon, nonaktif di namaHutan
-  if (state.mapInstance) {
-    state.mapInstance.off("click", _onMapClickRasterInfo);
-    if (type === "cover" || type === "carbon") {
-      state.mapInstance.on("click", _onMapClickRasterInfo);
-    }
-  }
-
-  // Bottom bar per-hutan: namaHutan, atau carbon saat Literature
-  const showBottomBar =
-    type === "namaHutan" || (type === "carbon" && isLitActive);
+  const showBottomBar = type === "namaHutan" || (type === "carbon" && isLitActive);
   if (showBottomBar && state.forestCarbonData?.length) {
     renderBottomBar(state.forestCarbonData);
     renderForestStatsTable(state.forestCarbonData);
@@ -404,10 +418,17 @@ function setMapLayer(type) {
     $("bottom-bar")?.classList.remove("visible");
   }
 
+  // Raster click handler
+  if (state.mapInstance) {
+    state.mapInstance.off("click", _onMapClickRasterInfo);
+    if (type === "cover" || type === "carbon") {
+      state.mapInstance.on("click", _onMapClickRasterInfo);
+    }
+  }
+
   updateMapLegend(type);
 }
 
-// ── MAP LAYER LEGEND (bottom-left overlay, context-sensitive) ──
 function updateMapLegend(type) {
   const panel = $("map-layer-legend");
   const titleEl = $("mll-title");
@@ -423,28 +444,19 @@ function updateMapLegend(type) {
           <span class="mll-dot" style="background:#22a755"></span>
           <span class="mll-label">Hutan Hujan Tropis</span>
         </div>
-        <div style="font-size:10px;color:#7a9a80;margin:0 0 5px 18px">Dataran rendah &lt; 1.000m dpl</div>
+        <div style="font-size:10px;color:#7a9a80;margin:0 0 5px 18px">Dataran rendah < 1.000m dpl</div>
         <div class="mll-item">
           <span class="mll-dot" style="background:#7c3aed"></span>
           <span class="mll-label">Ekosistem Pegunungan Tropis</span>
         </div>
         <div style="font-size:10px;color:#7a9a80;margin:0 0 2px 18px">Dataran tinggi ≥ 1.000m dpl</div>
       `;
-    } else if (state.method === "literature" && state.coverLayer) {
-      titleEl.textContent = "Tutupan Lahan NDVI";
-      html = [
-        { color: "#0d4a27", label: "Stok Karbon Tinggi (NDVI ≥ 0.65)" },
-        { color: "#4caf50", label: "Stok Karbon Sedang (≥ 0.50)" },
-        { color: "#c8e6c9", label: "Stok Karbon Rendah (< 0.50)" },
-      ]
-        .map(
-          ({ color, label }) => `
-        <div class="mll-item">
-          <span class="mll-dot" style="background:${color}"></span>
-          <span class="mll-label">${label}</span>
-        </div>`,
-        )
-        .join("");
+    } else if (state.method === "lefebvre" && (state.carbonLayer || state._litByNama?.length)) {
+      titleEl.textContent = "TUTUPAN LAHAN NDVI";
+      html = `
+        <div class="mll-bar" style="background:linear-gradient(to right, #c7e8c2, #74c476, #00441b);height:10px;border-radius:4px;margin-bottom:4px"></div>
+        <div class="mll-bar-labels"><span>NDVI Rendah</span><span>NDVI Tinggi</span></div>
+      `;
     } else {
       titleEl.textContent = "Tutupan Lahan";
       // Hanya tampilkan kelas yang memiliki data (areaHa > 0)
@@ -473,77 +485,66 @@ function updateMapLegend(type) {
     body.innerHTML = html;
     panel.style.display = "";
   } else if (type === "carbon") {
-    titleEl.textContent = "Stok Karbon (tC/ha)";
-    let minLabel = "Rendah",
-      maxLabel = "Tinggi";
-    let barStyle = "";
-    if (state.method === "lefebvre" && state._litByNama?.length) {
-      // Literature: gradient hijau dari _litByNama (hanya nilai positif)
-      const densities = state._litByNama
-        .filter((i) => i.areaHa > 0 && i.carbon > 0)
-        .map((i) => i.carbon / i.areaHa);
-      if (densities.length) {
-        minLabel = Math.min(...densities).toFixed(2) + " tC/ha";
-        maxLabel = Math.max(...densities).toFixed(2) + " tC/ha";
+    let minLabel = "1 tC/ha",
+      maxLabel = "210 tC/ha";
+    let barStyle = "background:linear-gradient(to right,#c7e8c2,#74c476,#00441b);height:10px;border-radius:4px;margin-bottom:4px";
+    
+    if (state.method === "lefebvre") {
+      titleEl.textContent = "STOK KARBON (tC/HA)";
+      if (state._litByNama?.length) {
+        const densities = state._litByNama
+          .filter((i) => i.areaHa > 0)
+          .map((i) => i.carbon / i.areaHa);
+        if (densities.length) {
+          minLabel = Math.min(...densities).toFixed(1) + " tC/ha";
+          maxLabel = Math.max(...densities).toFixed(1) + " tC/ha";
+        }
       }
-      barStyle =
-        "background:linear-gradient(to right,#c7e8c2,#1a6b2e);height:10px;border-radius:4px;margin-bottom:4px";
-    } else if (state.classData && Object.keys(state.classData).length) {
-      const densities = Object.values(state.classData)
-        .filter((d) => d.areaHa > 0 && d.carbon > 0)
-        .map((d) => d.carbon / d.areaHa);
-      if (densities.length) {
-        minLabel = Math.min(...densities).toFixed(0) + " tC/ha";
-        maxLabel = Math.max(...densities).toFixed(0) + " tC/ha";
+    } else {
+      titleEl.textContent = "Stok Karbon (tC/ha)";
+      if (state.classData && Object.keys(state.classData).length) {
+        const densities = Object.values(state.classData)
+          .filter((d) => d.areaHa > 0 && d.carbon > 0)
+          .map((d) => d.carbon / d.areaHa);
+        if (densities.length) {
+          minLabel = Math.min(...densities).toFixed(0) + " tC/ha";
+          maxLabel = Math.max(...densities).toFixed(0) + " tC/ha";
+        }
       }
     }
+    
     body.innerHTML = `
       <div class="mll-bar"${barStyle ? ` style="${barStyle}"` : ""}></div>
       <div class="mll-bar-labels"><span>${minLabel}</span><span>${maxLabel}</span></div>
     `;
     panel.style.display = "";
   } else if (type === "namaHutan") {
-    if (state.method === "lefebvre" && state._litByNama?.length) {
-      // Choropleth legend untuk Literature
-      titleEl.textContent = "Stok Karbon (tC/ha)";
-      const densities = state._litByNama
-        .filter((i) => i.areaHa > 0)
-        .map((i) => i.carbon / i.areaHa);
-      const minD = densities.length
-        ? Math.min(...densities).toFixed(1)
-        : "Rendah";
-      const maxD = densities.length
-        ? Math.max(...densities).toFixed(1)
-        : "Tinggi";
-      body.innerHTML = `
-        <div class="mll-bar" style="background:linear-gradient(to right,#c7e8c2,#1a6b2e);height:10px;border-radius:4px;margin-bottom:4px"></div>
-        <div class="mll-bar-labels"><span>${minD} tC/ha</span><span>${maxD} tC/ha</span></div>
-      `;
+    titleEl.textContent = "Nama Hutan";
+    const colorMap = state._namaColorMap || {};
+    const entries = Object.entries(colorMap);
+    if (entries.length) {
+      body.innerHTML = entries
+        .map(
+          ([nama, color]) => `
+        <div class="mll-item">
+          <span class="mll-dot" style="background:${color}"></span>
+          <span class="mll-label" title="${nama}">${nama}</span>
+        </div>`,
+        )
+        .join("");
     } else {
-      titleEl.textContent = "Nama Hutan";
-      const colorMap = state._namaColorMap || {};
-      const entries = Object.entries(colorMap);
-      if (entries.length) {
-        body.innerHTML = entries
-          .map(
-            ([nama, color]) => `
-          <div class="mll-item">
-            <span class="mll-dot" style="background:${color}"></span>
-            <span class="mll-label" title="${nama}">${nama}</span>
-          </div>`,
-          )
-          .join("");
-      } else {
-        body.innerHTML = `<div style="font-size:10px;color:#7aa89a">Muat SHP untuk melihat legenda.</div>`;
-      }
+      body.innerHTML = `<div style="font-size:10px;color:#7aa89a">Muat SHP untuk melihat legenda.</div>`;
     }
+    panel.style.display = "";
+
+
     panel.style.display = "";
   } else {
     panel.style.display = "none";
   }
 }
 
-// ── RASTER PIXEL INSPECTOR ───────────────────────────────────
+// ————————————————————————————————————————————————————————————
 
 /** Ambil nilai pixel raster pada koordinat lat/lng (WGS84) */
 function _getRasterValueAtLatLng(raster, lat, lng) {
@@ -613,7 +614,7 @@ function _onMapClickRasterInfo(e) {
   }
 }
 
-// ── LEGEND ───────────────────────────────────────────────────
+// ————————————————————————————————————————————————————————————
 function renderLegend() {
   const list = $("legend-list");
   if (!list) return;
@@ -632,7 +633,7 @@ function renderLegend() {
   });
 }
 
-// ── MAP INIT ─────────────────────────────────────────────────
+// ————————————————————————————————————————————————————————————
 function initMap() {
   const container = $("map");
   if (!window.L || container._leaflet_id) return;
@@ -896,7 +897,7 @@ function renderConservationMapOnMap2(classificationResults) {
   updateConservationStats(classificationResults);
 }
 
-// ── DRAW TOOL ────────────────────────────────────────────────
+// ————————————————————————————————————————————————————————————
 function activateDraw() {
   if (!state.mapInstance) return;
   const btn = $("tool-draw");
@@ -914,7 +915,7 @@ function activateDraw() {
   }, 120);
 }
 
-// ── FILE UPLOAD ──────────────────────────────────────────────
+// ————————————————————————————————————————————————————————————
 function triggerUpload() {
   $("file-input")?.click();
 }
@@ -986,7 +987,7 @@ function renderFileList() {
   });
 }
 
-// ── SHP / DEM UPLOAD ─────────────────────────────────────────
+// ————————————————————————————————————————————————————————————
 function triggerShpUpload() {
   $("shp-input")?.click();
 }
@@ -1107,7 +1108,7 @@ function clearDem() {
   toggleCalcBtn();
 }
 
-// ── LITERATURE SHP UPLOAD ────────────────────────────────────
+// ————————————————————————————————————————————————————————————
 function triggerShpUploadLit() {
   $("shp-input-lit")?.click();
 }
@@ -1170,7 +1171,7 @@ function clearLitShp() {
   toggleCalcBtn();
 }
 
-// ── GEE AUTH HANDLERS ────────────────────────────────────────
+// ————————————————————————————————————————————————————————————
 function updateGeeStatus(connected, msg, isError) {
   const dot = $("gee-status-dot");
   const lbl = $("gee-status-lbl");
@@ -1210,7 +1211,7 @@ function handleGeeSignIn() {
   );
 }
 
-// ── KLHK: MapBiomas database helpers ─────────────────────────
+// ————————————————————————————————————————————————————————————
 
 /** Show status inside the klhk-status-row */
 function showKlhkStatus(type, msg) {
@@ -1221,7 +1222,7 @@ function showKlhkStatus(type, msg) {
   row.style.display = "flex";
   if (icon) {
     icon.className = `klhk-status-icon ${type}`;
-    icon.textContent = type === "loading" ? "⟳" : type === "ok" ? "✓" : "✗";
+    icon.textContent = type === "loading" ? "⟳" : type === "ok" ? "✓" : "✕";
   }
   if (text) text.textContent = msg;
 }
@@ -1269,11 +1270,7 @@ async function setKlhkYear(year) {
       /* tidak ada precomputed — akan sampling TIFF */
     }
 
-    const { width, height } = state.raster;
-    showKlhkStatus(
-      "ok",
-      `Data ${year} dimuat ✓ (${width}×${height} px · ${state.raster.crs?.type === "utm" ? "UTM" : "WGS84"})`,
-    );
+    showKlhkStatus("ok", `Data ${year} dimuat ✓`);
     if (activeBtn) activeBtn.classList.remove("loading");
 
     // Preview overlay on map
@@ -1313,11 +1310,11 @@ async function setKlhkYear(year) {
   }
 }
 
-// ── TREN TAHUNAN: Load semua precomputed + render multi-year charts ──
+// ————————————————————————————————————————————————————————————
 async function loadAndShowTrenTahunan() {
   switchStatsView("tahunan");
 
-  // Sudah di-cache dan byNama sudah ada → langsung render ulang
+  // Sudah di-cache dan byNama sudah ada — langsung render ulang
   const firstYear = state.carbonByYear && Object.values(state.carbonByYear)[0];
   if (firstYear && firstYear.byNama) {
     renderMultiYearCharts(state.carbonByYear);
@@ -1330,11 +1327,11 @@ async function loadAndShowTrenTahunan() {
   const emptyKelas = document.getElementById("chart-empty-kelas");
   if (emptyTren) {
     emptyTren.style.display = "flex";
-    emptyTren.textContent = "⏳ Memuat data semua tahun…";
+    emptyTren.textContent = "⟳ Memuat data semua tahun…";
   }
   if (emptyKelas) {
     emptyKelas.style.display = "flex";
-    emptyKelas.textContent = "⏳ Memuat data per kelas…";
+    emptyKelas.textContent = "⟳ Memuat data per kelas…";
   }
 
   const YEARS = [2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024];
@@ -1490,10 +1487,10 @@ async function loadNfiShp() {
         { padding: [40, 40] },
       );
       if (state.litPrecomputed) {
-        // JSON sudah ada (setLitYear selesai sebelum SHP) → hitung sekarang
+        // JSON sudah ada (setLitYear selesai sebelum SHP) — hitung sekarang
         await calculate();
       } else if (state._litByNama?.length) {
-        // Sudah ada hasil lama → render ulang choropleth dengan SHP baru
+        // Sudah ada hasil lama — render ulang choropleth dengan SHP baru
         renderLitChoropleth(state._litByNama);
         setMapLayer("namaHutan");
       }
@@ -1516,7 +1513,7 @@ function _renderNfiShpFeatures(features, mapInstance) {
   }
   const group = L.featureGroup().addTo(mapInstance);
 
-  // Buat peta namobj → warna palette untuk layer Nama Hutan
+  // Buat peta namobj —> warna palette untuk layer Nama Hutan
   const namaColorMap = {};
   let _pIdx = 0;
   features.forEach((feat) => {
@@ -1543,7 +1540,7 @@ function _renderNfiShpFeatures(features, mapInstance) {
       ) ||
       "Area Hutan";
 
-    // Konversi koordinat GeoJSON [lng,lat] → Leaflet [lat,lng]
+    // Konversi koordinat GeoJSON [lng,lat] —> Leaflet [lat,lng]
     const toLeaflet = (ring) => ring.map(([lng, lat]) => [lat, lng]);
     let leafletCoords;
     if (geom.type === "Polygon") {
@@ -1569,7 +1566,7 @@ function _renderNfiShpFeatures(features, mapInstance) {
       className: "shp-tooltip",
     });
 
-    // Klik → langsung hitung dan tampilkan popup hasil (hanya di mode namaHutan)
+    // Klik —> langsung hitung dan tampilkan popup hasil (hanya di mode namaHutan)
     layer.on("click", function (e) {
       if (state.activeMapLayer !== "namaHutan") return;
       L.DomEvent.stopPropagation(e);
@@ -1580,7 +1577,7 @@ function _renderNfiShpFeatures(features, mapInstance) {
           `
         <div style="min-width:220px;font-family:inherit;text-align:center;padding:8px 0">
           <div style="font-size:13px;font-weight:700;color:#52b788;margin-bottom:8px">🌳 ${nama}</div>
-          <div style="font-size:11px;color:#7aa89a">⏳ Menghitung stok karbon...</div>
+          <div style="font-size:11px;color:#7aa89a">⟳ Menghitung stok karbon...</div>
         </div>
       `,
           { maxWidth: 300 },
@@ -1615,7 +1612,7 @@ function _renderNfiShpFeatures(features, mapInstance) {
   renderForestNamePanel(features, namaColorMap);
 }
 
-// ── FOREST NAME PANEL ─────────────────────────────────────────
+// ————————————————————————————————————————————————————————————
 function renderForestNamePanel(features, namaColorMap) {
   const panel = $("forest-name-panel");
   const list = $("fnp-list");
@@ -1660,7 +1657,7 @@ function toggleForestNamePanel() {
   icon?.classList.toggle("collapsed", isCollapsed);
 }
 
-// ── BOTTOM BAR TOGGLE ─────────────────────────────────────────
+// ————————————————————————————————————————————————————————————
 function toggleBottomBar() {
   const bar = $("bottom-bar");
   const arrow = $("bbt-arrow");
@@ -1772,17 +1769,17 @@ async function calcCarbonFromShpFeature(stampId) {
   _updateShpCarbonGradient();
 }
 
-// ── CARBON GRADIENT COLORING FOR SHP FEATURES ────────────────
+// ————————————————————————————————————————————————————————————
 /**
  * Warnai satu polygon SHP berdasarkan densitas karbon (tC/ha)
- * Gradasi: rendah (#d4edda hijau muda) → tinggi (#1a4731 hijau pekat)
+ * Gradasi: rendah (#d4edda hijau muda) —> tinggi (#1a4731 hijau pekat)
  */
 function _colorShpFeatureByCarbon(layer, totalC, areaHa) {
   if (!layer || !areaHa) return;
   const density = totalC / areaHa; // tC/ha
-  // Skala 0–200 tC/ha → warna hijau muda ke pekat
+  // Skala 0–200 tC/ha —> warna hijau muda ke pekat
   const t = Math.max(0, Math.min(1, density / 200));
-  // hijau muda rgb(212,237,218) → hijau pekat rgb(26,71,49)
+  // hijau muda rgb(212,237,218) —> hijau pekat rgb(26,71,49)
   const r = Math.round(212 + t * (26 - 212));
   const g = Math.round(237 + t * (71 - 237));
   const b = Math.round(218 + t * (49 - 218));
@@ -1827,13 +1824,14 @@ function _updateShpCarbonGradient() {
   if (state.activeMapLayer === "carbon") updateMapLegend("carbon");
 }
 
-// ── LITERATURE: Choropleth SHP berdasarkan densitas karbon ────
+// ————————————————————————————————————————————————————————————
+// Literature: Choropleth SHP berdasarkan densitas karbon ————
 // Warnai setiap polygon hutan dengan gradien hijau muda→tua
 // sesuai densitas karbon (tC/ha) dari JSON pre-computed.
 function renderLitChoropleth(byNamaArr) {
   if (!state.nfiShpLayer || !byNamaArr?.length) return;
 
-  // Bangun map: nama → densitas (tC/ha)
+  // Bangun map: nama —> densitas (tC/ha)
   const densityMap = {};
   byNamaArr.forEach((item) => {
     if (item.areaHa > 0) densityMap[item.nama] = item.carbon / item.areaHa;
@@ -1845,12 +1843,12 @@ function renderLitChoropleth(byNamaArr) {
   const minD = Math.min(...densities);
   const range = Math.max(...densities) - minD || 1;
 
-  // Gradient hijau muda (#c7e8c2) → hijau tua (#1a6b2e)
+  // Gradient hijau muda (#c7e8c2) —> hijau tua (#1a6b2e)
   function carbonColor(density) {
     const t = Math.max(0, Math.min(1, (density - minD) / range));
-    const r = Math.round(199 - t * 173); // 199 → 26
-    const g = Math.round(232 - t * 125); // 232 → 107
-    const b = Math.round(194 - t * 148); // 194 → 46
+    const r = Math.round(199 - t * 173); // 199 —> 26
+    const g = Math.round(232 - t * 125); // 232 —> 107
+    const b = Math.round(194 - t * 148); // 194 —> 46
     return `rgb(${r},${g},${b})`;
   }
 
@@ -1863,7 +1861,8 @@ function renderLitChoropleth(byNamaArr) {
   });
 }
 
-// ── LITERATURE: Load Stock Carbon Landsat 8 per tahun ────────
+// ————————————————————————————————————————————————————————————
+// Literature: Load Stock Carbon Landsat 8 per tahun —————————
 // Strategi: coba JSON pre-computed dulu (< 5 KB, instan).
 // Jika tidak ada, tampilkan instruksi bahwa data tidak tersedia.
 async function setLitYear(year) {
@@ -1885,20 +1884,38 @@ async function setLitYear(year) {
     state.mapInstance.removeLayer(state.carbonStockLayer);
     state.carbonStockLayer = null;
   }
-  $("ndvi-raster-info").style.display = "none";
+  const ndviInfoEl = $("ndvi-raster-info");
+  if (ndviInfoEl) ndviInfoEl.style.display = "none";
 
   showLoader(`Memuat Stok Karbon ${year}...`);
 
   const jsonUrl = `/Karbon_Literature/karbon_lit_${year}.json`;
 
   try {
-    // ── Coba JSON pre-computed dulu (< 5 KB, instan) ──────────
+    // ——————————————————————————————————————————————————————————
+    // Coba JSON pre-computed dulu (< 5 KB, instan) —————————————
     let hasJson = false;
     try {
       const resp = await fetch(jsonUrl);
       if (resp.ok) {
-        state.litPrecomputed = await resp.json();
+        const data = await resp.json();
+        state.litPrecomputed = data;
         hasJson = true;
+
+        // Update state.forestCarbonData dari JSON
+        const fcd = [];
+        if (data.byNama) {
+          Object.values(data.byNama).forEach(item => {
+            fcd.push({
+              nama: item.namobj || item.nama,
+              kelas: item.kelas || '-',
+              totalCarbon: item.carbon || 0,
+              totalArea: item.areaHa || 0
+            });
+          });
+        }
+        fcd.sort((a, b) => b.totalCarbon - a.totalCarbon);
+        state.forestCarbonData = fcd;
       }
     } catch (_) {
       /* JSON belum ada, akan load TIF */
@@ -1907,13 +1924,8 @@ async function setLitYear(year) {
     if (hasJson) {
       showNdviStatus(
         "ok",
-        `Stok Karbon ${year} ✓ · JSON pre-computed · Landsat 8 30m`,
+        `Stok Karbon ${year} ✓`,
       );
-      const infoEl = $("ndvi-raster-info");
-      if (infoEl) {
-        infoEl.innerHTML = `<span class="crs-badge">Data pre-computed · Landsat 8 · 30m · UTM 48S</span>`;
-        infoEl.style.display = "block";
-      }
       if (activeBtn) activeBtn.classList.remove("loading");
       toggleCalcBtn();
 
@@ -1948,7 +1960,41 @@ async function setLitYear(year) {
           );
         }
       }
-      // SHP belum selesai load → callback di loadNfiShp akan trigger calculate()
+      
+      // Tetap muat GeoJSON Cache untuk visualisasi
+      const geoUrl = `NDVI_Landsat8/ndvi_${year}.geojson`;
+      fetch(geoUrl).then(async (res) => {
+        if (!res.ok) return;
+        const dataGeo = await res.json();
+        if (state.mapInstance) {
+          if (state.ndviGeoLayer) state.mapInstance.removeLayer(state.ndviGeoLayer);
+          state.ndviGeoLayer = L.geoJSON(dataGeo, {
+            style: function (feature) {
+              if (state.activeMapLayer === 'namaHutan') return { opacity: 0, fillOpacity: 0 };
+              const cid = feature.properties.class_id;
+              const isCarbonMode = state.activeMapLayer === 'carbon';
+              let color = 'transparent';
+              // NDVI: Light Green to Dark Green
+              // Carbon: Teal to Dark Green
+              if (cid === 2) color = isCarbonMode ? '#80cdc1' : '#c8e6c9';
+              else if (cid === 3) color = isCarbonMode ? '#018571' : '#4caf50';
+              else if (cid === 4) color = isCarbonMode ? '#00441b' : '#0d4a27';
+              return { fillColor: color, fillOpacity: 0.85, color: color, weight: 0 };
+            }
+          });
+          state.carbonLayer = state.ndviGeoLayer;
+          if (state.activeMapLayer === "carbon" || state.activeMapLayer === "cover" || state.activeMapLayer === "namaHutan") {
+             state.carbonLayer.addTo(state.mapInstance);
+          }
+           // Add forest choropleth if in forest mode
+           if (state.activeMapLayer === 'namaHutan' && state.forestCarbonData) {
+             renderLitChoropleth(state.forestCarbonData);
+           }
+           // Default to NDVI view after data is loaded
+           setMapLayer('cover');
+        }
+      }).catch(e => console.warn(e));
+      
     } else {
       // JSON belum di-generate — jangan load TIF (17 MB, bekukan browser)
       if (activeBtn) {
@@ -1994,7 +2040,7 @@ function showNdviStatus(type, msg) {
   row.style.display = "flex";
   if (icon) {
     icon.className = `klhk-status-icon ${type}`;
-    icon.textContent = type === "loading" ? "⟳" : type === "ok" ? "✓" : "✗";
+    icon.textContent = type === "loading" ? "⟳" : type === "ok" ? "✓" : "✕";
   }
   if (text) text.textContent = msg;
 }
@@ -2037,13 +2083,13 @@ async function loadIpccDem() {
   }
 }
 
-// ── CALCULATE ────────────────────────────────────────────────
+// ————————————————————————————————————————————————————————————
 async function calculate() {
   const hasDrawn = state.drawnPolygons.length > 0;
   const isIpcc = state.method === "ipcc";
   const isLit = state.method === "lefebvre";
 
-  // ── Validation ────────────────────────────────────────────
+  // ————————————————————————————————————————————————————————————
   if (isIpcc) {
     if (!state.demRaster) {
       showError("⚠ Upload file DEM terlebih dahulu untuk metode IPCC.");
@@ -2081,7 +2127,7 @@ async function calculate() {
       }
 
       if (isIpcc) {
-        // ── IPCC: classify by DEM elevation ───────────────────
+        // ——————————————————————————————————————————————————————————
         if (state.mapInstance) {
           const clipRings = state.nfiShpPolygon?.length
             ? state.nfiShpPolygon
@@ -2143,7 +2189,7 @@ async function calculate() {
           totalAreaHa += areaHa;
         }
       } else if (isLit) {
-        // ── Literature: Stock Carbon Landsat 8 (JSON pre-computed) ─
+        // ——————————————————————————————————————————————————————————
         if (!state.litPrecomputed) {
           showError(
             "⚠ Pilih tahun data Stok Karbon terlebih dahulu (2015–2025).",
@@ -2214,8 +2260,8 @@ async function calculate() {
         renderLitChoropleth(byNama);
         if (state.mapInstance && state.nfiShpLayer) setMapLayer("namaHutan");
       } else {
-        // ── KLHK: MapBiomas pre-loaded raster ─────────────────
-        // Recreate overlay (always — map display)
+        // â”€â”€ KLHK: MapBiomas pre-loaded raster â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        // Recreate overlay (always â€” map display)
         if (state.mapInstance) {
           state.coverLayer = await addRasterOverlayToMap(
             state.raster,
@@ -2226,7 +2272,7 @@ async function calculate() {
           });
         }
 
-        // ── Prioritas 1: data pre-computed (dari precompute.py) ──────────────
+        // â”€â”€ Prioritas 1: data pre-computed (dari precompute.py) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         let _fromPrecomputed = false;
         if (!hasDrawn && state.klhkPrecomputed && state.nfiShpFeatures?.length) {
           const pd = state.klhkPrecomputed;
@@ -2295,7 +2341,7 @@ async function calculate() {
           _fromPrecomputed = true;
         }
 
-        // ── Prioritas 2: localStorage cache ──────────────────────────────────
+        // â”€â”€ Prioritas 2: localStorage cache â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         const _cacheKey =
           !hasDrawn && !_fromPrecomputed && state.klhkYear
             ? `cp_klhk_${state.klhkYear}`
@@ -2320,7 +2366,7 @@ async function calculate() {
         }
 
         if (!_fromPrecomputed && !_fromCache) {
-          // Determine area: drawn polygon → nfi SHP features → full raster
+          // Determine area: drawn polygon â†’ nfi SHP features â†’ full raster
           let nfiCounts = {};
           let _byNamaCounts = null;
           if (hasDrawn) {
@@ -2329,7 +2375,7 @@ async function calculate() {
             );
             nfiCounts = await sampleRasterByRings(state.raster, drawnRings);
           } else if (state.nfiShpFeatures?.length) {
-            // Satu pass untuk semua fitur — sekaligus dapat data per namobj
+            // Satu pass untuk semua fitur â€” sekaligus dapat data per namobj
             const sampResult = await sampleRasterByFeatures(
               state.raster,
               state.nfiShpFeatures,
@@ -2342,8 +2388,8 @@ async function calculate() {
 
           // Formula KLHK:
           // Step 1: biomass_total [Mg/ha] = AGB [Mg/ha] + BGB [Mg/ha]
-          // Step 2: areaHa = Σ pixel area [ha]
-          // Step 3: carbon [tC] = biomass_total × areaHa × 0.47
+          // Step 2: areaHa = Î£ pixel area [ha]
+          // Step 3: carbon [tC] = biomass_total Ã— areaHa Ã— 0.47
           const avgPxHa = computeAvgPixelAreaHa(state.raster);
           const classedCounts = {};
           for (const [valStr, areaHa] of Object.entries(nfiCounts)) {
@@ -2434,7 +2480,7 @@ async function calculate() {
       state.totalArea = totalAreaHa;
       state.stock = agg;
 
-      // ── Build carbon density layer (IPCC and KLHK) ─────────
+      // â”€â”€ Build carbon density layer (IPCC and KLHK) â”€â”€â”€â”€â”€â”€â”€â”€â”€
       if (state.mapInstance && Object.keys(classData).length > 0) {
         if (isIpcc) {
           const ipccClipRings = state.nfiShpPolygon?.length
@@ -2461,12 +2507,12 @@ async function calculate() {
       // Show layer toggle
       const ltg = $("layer-toggle-group");
       if (ltg) ltg.style.display = "flex";
-      // Literature: choropleth sudah diset di blok isLit — jangan override ke cover
+      // Literature: choropleth sudah diset di blok isLit â€” jangan override ke cover
       if (!isLit) setMapLayer("cover");
       // SHP layer selalu tampil di atas raster overlay
       if (state.nfiShpLayer) state.nfiShpLayer.bringToFront();
 
-      // ── Render ─────────────────────────────────────────────
+      // â”€â”€ Render â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
       renderResult(totalAreaHa, agg);
       renderClassBreakdown(classData);
       renderLegend();
@@ -2491,7 +2537,7 @@ async function calculate() {
       const dominant = Object.entries(classData).sort(
         (a, b) => b[1].carbon - a[1].carbon,
       )[0];
-      const domName = dominant ? dominant[1].nameId || dominant[1].name : "–";
+      const domName = dominant ? dominant[1].nameId || dominant[1].name : "â€“";
       const methLabels = {
         ipcc: "IPCC 2019",
         nfi: "KLHK",
@@ -2515,7 +2561,7 @@ async function calculate() {
       $("result-panel").classList.add("visible");
     } catch (err) {
       console.error(err);
-      showError(t("errParse") + " — " + err.message);
+      showError(t("errParse") + " â€” " + err.message);
     } finally {
       restoreBtn();
       hideLoader();
@@ -2531,7 +2577,7 @@ function restoreBtn() {
   }
 }
 
-// ── BOTTOM BAR: per-forest carbon ────────────────────────────
+// â”€â”€ BOTTOM BAR: per-forest carbon â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function renderBottomBar(forestData) {
   const bar = $("bottom-bar");
   const list = $("bb-forest-list");
@@ -2576,7 +2622,7 @@ function renderBottomBar(forestData) {
   renderForestDonutChart(byKelas);
 }
 
-// ── RENDER RESULT ────────────────────────────────────────────
+// â”€â”€ RENDER RESULT â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function renderResult(areaHa, stock) {
   tx("res-area", fmtArea(areaHa || 0));
   tx("res-stock", fmt(stock.total));
@@ -2628,10 +2674,10 @@ function renderCharts(classData) {
   renderStatsTable(classData);
 }
 
-// ── RESET ───────────────────────────────────────────────────
+// â”€â”€ RESET â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function resetAll() {
   state.drawnPolygons = [];
-  // Keep state.raster (KLHK MapBiomas — stays loaded until year changes)
+  // Keep state.raster (KLHK MapBiomas â€” stays loaded until year changes)
   state.classData = {};
   state.totalArea = 0;
   state.stock = null;
@@ -2710,8 +2756,8 @@ function resetAll() {
     "rp-class-list",
     '<div class="rp-empty">Belum ada data.<br>Hitung terlebih dahulu.</div>',
   );
-  tx("rp-total-area", "–");
-  tx("rp-total-carbon", "–");
+  tx("rp-total-area", "â€“");
+  tx("rp-total-carbon", "â€“");
   const rpEmpty = $("rp-chart-empty");
   if (rpEmpty) rpEmpty.style.display = "flex";
   if (typeof _chartDonut !== "undefined" && _chartDonut) {
@@ -2720,7 +2766,7 @@ function resetAll() {
   }
 }
 
-// ── STATUS ───────────────────────────────────────────────────
+// â”€â”€ STATUS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function updateStatus() {
   const area = state.drawnPolygons.reduce((s, p) => s + p.area, 0);
   tx("st-area", area > 0 ? fmtArea(area) : "0 ha");
@@ -2742,7 +2788,7 @@ function updateQuickStats(areaHa, stock, classData) {
         _lang === "id"
           ? dominant[1].nameId || dominant[1].name
           : dominant[1].name;
-      tx("qs-class", domName || "–");
+      tx("qs-class", domName || "â€“");
     }
   }
 }
@@ -2768,19 +2814,19 @@ function showError(msg) {
   el.classList.toggle("visible", !!msg);
 }
 
-// ── RIGHT PANEL TOGGLE ───────────────────────────────────────
+// â”€â”€ RIGHT PANEL TOGGLE â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function toggleRightPanel() {
   const panel = $("right-panel");
   const btn = $("rp-toggle-btn");
   if (!panel) return;
   panel.classList.toggle("collapsed");
-  if (btn) btn.textContent = panel.classList.contains("collapsed") ? "‹" : "›";
+  if (btn) btn.textContent = panel.classList.contains("collapsed") ? "â€¹" : "â€º";
   setTimeout(() => {
     if (state.mapInstance) state.mapInstance.invalidateSize();
   }, 300);
 }
 
-// ── CONSERVATION & RESTORATION CLASSIFICATION ─────────────────
+// â”€â”€ CONSERVATION & RESTORATION CLASSIFICATION â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 /**
  * Calculate and render conservation classification on map2
@@ -2954,7 +3000,7 @@ function showClassificationPopup(layer, e) {
       <div style="font-size:14px;font-weight:700;color:${c.category.color};margin-bottom:8px">
         ${c.category.name}
       </div>
-      <div style="font-size:12px;margin-bottom:6px">🌳 <strong>${c.nama}</strong> (${c.kelas})</div>
+      <div style="font-size:12px;margin-bottom:6px">ðŸŒ³ <strong>${c.nama}</strong> (${c.kelas})</div>
       <div style="font-size:11px;color:#666;margin-bottom:10px;line-height:1.3">${c.category.description}</div>
       
       <table style="font-size:11px;width:100%;border-collapse:collapse">
@@ -2988,7 +3034,7 @@ function showClassificationPopup(layer, e) {
     .openOn(state.map2Instance);
 }
 
-// ── BOOTSTRAP ────────────────────────────────────────────────
+// â”€â”€ BOOTSTRAP â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 window.addEventListener("DOMContentLoaded", () => {
   setLang("id");
   applyLabels();
@@ -2996,7 +3042,7 @@ window.addEventListener("DOMContentLoaded", () => {
   toggleCalcBtn();
   selectMethod("ipcc");
 
-  // Build KLHK year grid (2015–2024)
+  // Build KLHK year grid (2015â€“2024)
   const klhkGrid = $("klhk-year-grid");
   if (klhkGrid) {
     for (let y = 2015; y <= 2024; y++) {
@@ -3009,10 +3055,10 @@ window.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  // Build Literature NDVI year grid (2015–2024)
+  // Build Literature NDVI year grid (2015â€“2024)
   const ndviGrid = $("ndvi-year-grid");
   if (ndviGrid) {
-    for (let y = 2015; y <= 2025; y++) {
+    for (let y = 2015; y <= 2024; y++) {
       const btn = document.createElement("button");
       btn.className = "klhk-yr-btn ndvi-yr-btn";
       btn.dataset.year = String(y);
@@ -3069,3 +3115,4 @@ window.addEventListener("DOMContentLoaded", () => {
   };
   setTimeout(tryInit, 500);
 });
+

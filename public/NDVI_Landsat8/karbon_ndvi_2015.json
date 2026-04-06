@@ -1,0 +1,14 @@
+{
+  "year": 2015,
+  "totalCarbon": 7058391.2109,
+  "totalAreaHa": 81936.9,
+  "avgNdvi": 0.3451,
+  "byNama": {
+    "Gunung Halimun Salak": {
+      "namobj": "Gunung Halimun Salak",
+      "kelas": "Hutan Konservasi",
+      "carbon": 6877518.548720341,
+      "areaHa": 79887.15
+    }
+  }
+}

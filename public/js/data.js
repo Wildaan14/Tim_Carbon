@@ -127,18 +127,15 @@ const IPCC_FOREST_TYPES = {
 
 const IPCC_ELEV_THRESHOLD = 1000; // meter di atas permukaan laut
 
-// ── NDVI → CARBON (Literature / Lefebvre method) ─────────────
-// Formula: y = -255.61x² + 494.84x - 154.45  (Karbon tC/ha vs NDVI)
-// R² = 0.8574 · Source: Sentinel-2 regression
-const NDVI_A = -255.61;
-const NDVI_B = 494.84;
-const NDVI_C = -154.45;
-
 function ndviToCarbon(ndvi) {
-  return Math.max(0, NDVI_A * ndvi * ndvi + NDVI_B * ndvi + NDVI_C);
+  const threshold = 0.2181767280121414;
+  if (ndvi >= threshold) {
+    // Rumus: (678.67 * NDVI - 148.07) → tC/ha (carbon density per hectare)
+    return (678.67 * ndvi - 148.07);
+  }
+  return 0;
 }
 
-// Three carbon classes derived from NDVI ranges
 const NDVI_CARBON_CLASSES = {
   lit_high: {
     name: "High Carbon Stock",
@@ -155,8 +152,8 @@ const NDVI_CARBON_CLASSES = {
   lit_low: {
     name: "Low Carbon Stock",
     nameId: "Stok Karbon Rendah",
-    color: "#ffffcc",
-    ndviMin: 0.0,
+    color: "#d9f0a3", // Warna hijau lebih muda
+    ndviMin: 0.2181767280121414,
   },
 };
 
